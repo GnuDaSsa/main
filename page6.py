@@ -1,407 +1,541 @@
 import streamlit as st
-import random
 
 def run():
-    # MBTI 질문 pool (각 지표별 12개 이상, 총 48개)
-    QUESTIONS_POOL = [
-        # E/I (외향/내향)
-        ("여럿이 모임을 즐긴다.", "E"),
-        ("혼자만의 시간이 꼭 필요하다.", "I"),
-        ("새로운 사람을 만나는 것이 어렵지 않다.", "E"),
-        ("혼자 있을 때 에너지가 충전된다.", "I"),
-        ("여러 사람 앞에서 이야기하는 것이 어렵지 않다.", "E"),
-        ("조용한 환경이 더 편하다.", "I"),
-        ("즉흥적으로 대화를 시작하는 편이다.", "E"),
-        ("깊은 대화를 소수와 나누는 것이 좋다.", "I"),
-        ("여행은 여럿이 함께 가는 게 좋다.", "E"),
-        ("혼자만의 취미 시간이 소중하다.", "I"),
-        ("사람들과 함께 있을 때 에너지가 난다.", "E"),
-        ("혼자 있을 때 생각이 정리된다.", "I"),
-        ("파티나 모임을 즐긴다.", "E"),
-        ("조용한 공간에서 책 읽기를 좋아한다.", "I"),
-        ("즉흥적으로 약속을 잡는 편이다.", "E"),
-        ("계획된 시간에 혼자 있는 걸 선호한다.", "I"),
-        ("SNS에 내 일상을 자주 공유한다.", "E"),
-        ("SNS는 보기만 하고 잘 올리지 않는다.", "I"),
-        ("새로운 환경에 쉽게 적응한다.", "E"),
-        ("변화보다는 익숙함이 좋다.", "I"),
-        ("사람들과 함께 있을 때 아이디어가 떠오른다.", "E"),
-        ("혼자 있을 때 창의력이 발휘된다.", "I"),
-        ("모르는 사람과 대화하는 것이 어렵지 않다.", "E"),
-        ("낯선 사람과 대화가 부담스럽다.", "I"),
-        # S/N (감각/직관)
-        ("사실과 현실에 집중하는 편이다.", "S"),
-        ("상상하거나 미래를 꿈꾸는 걸 좋아한다.", "N"),
-        ("구체적인 설명이 이해하기 쉽다.", "S"),
-        ("추상적인 개념을 생각하는 걸 좋아한다.", "N"),
-        ("경험에서 배우는 것을 선호한다.", "S"),
-        ("새로운 아이디어를 떠올리는 걸 즐긴다.", "N"),
-        ("세부사항을 잘 챙기는 편이다.", "S"),
-        ("큰 그림을 보는 것이 중요하다.", "N"),
-        ("실용적인 것이 좋다.", "S"),
-        ("가능성을 상상하는 것이 즐겁다.", "N"),
-        ("현실적인 해결책을 선호한다.", "S"),
-        ("미래의 가능성에 집중한다.", "N"),
-        ("구체적인 예시가 있어야 이해가 쉽다.", "S"),
-        ("상상력을 자주 발휘한다.", "N"),
-        ("사실에 근거한 판단을 한다.", "S"),
-        ("직감적으로 결정을 내린다.", "N"),
-        ("현재에 집중하는 편이다.", "S"),
-        ("미래를 계획하는 것이 즐겁다.", "N"),
-        ("실제 경험이 중요하다.", "S"),
-        ("이론이나 가설을 생각하는 걸 좋아한다.", "N"),
-        ("디테일에 강하다.", "S"),
-        ("새로운 트렌드에 민감하다.", "N"),
-        ("현실적인 목표를 세운다.", "S"),
-        ("혁신적인 아이디어를 추구한다.", "N"),
-        # T/F (사고/감정)
-        ("결정할 때 논리와 이성을 중시한다.", "T"),
-        ("상대방의 감정에 공감하는 편이다.", "F"),
-        ("객관적인 사실이 중요하다.", "T"),
-        ("사람들의 기분을 신경 쓴다.", "F"),
-        ("비판적으로 생각하는 편이다.", "T"),
-        ("타인의 입장을 먼저 생각한다.", "F"),
-        ("논리적 오류를 잘 찾아낸다.", "T"),
-        ("분위기를 해치지 않으려 노력한다.", "F"),
-        ("공정함이 중요하다.", "T"),
-        ("조화가 중요하다.", "F"),
-        ("논리적으로 토론하는 걸 좋아한다.", "T"),
-        ("감정적으로 공감하는 대화를 선호한다.", "F"),
-        ("객관적인 근거를 중시한다.", "T"),
-        ("상대방의 감정에 민감하다.", "F"),
-        ("비판적 사고를 자주 한다.", "T"),
-        ("타인의 감정을 먼저 고려한다.", "F"),
-        ("결정할 때 감정보다 논리를 우선한다.", "T"),
-        ("상대방의 기분을 상하게 하지 않으려 한다.", "F"),
-        ("논리적 설명이 설득력 있다고 느낀다.", "T"),
-        ("감정적 호소에 쉽게 공감한다.", "F"),
-        ("객관적 사실을 중시한다.", "T"),
-        ("분위기 파악을 잘 한다.", "F"),
-        ("비판적 피드백을 잘 준다.", "T"),
-        ("타인의 감정에 쉽게 흔들린다.", "F"),
-        # J/P (판단/인식)
-        ("계획적으로 움직이는 것이 편하다.", "J"),
-        ("즉흥적으로 행동하는 걸 좋아한다.", "P"),
-        ("정해진 일정이 있으면 마음이 편하다.", "J"),
-        ("상황에 따라 유연하게 대처한다.", "P"),
-        ("목표를 세우고 실천하는 걸 좋아한다.", "J"),
-        ("새로운 기회가 생기면 바로 도전한다.", "P"),
-        ("마감일을 지키는 편이다.", "J"),
-        ("마감 직전에 집중이 잘 된다.", "P"),
-        ("정돈된 환경이 좋다.", "J"),
-        ("약속 없는 자유 시간이 필요하다.", "P"),
-        ("계획을 세우고 따르는 걸 선호한다.", "J"),
-        ("즉흥적인 변화를 즐긴다.", "P"),
-        ("일정을 미리 정해두는 편이다.", "J"),
-        ("상황에 따라 계획을 바꾼다.", "P"),
-        ("정리정돈을 잘 한다.", "J"),
-        ("즉흥적으로 결정하는 걸 좋아한다.", "P"),
-        ("계획이 틀어지면 불안하다.", "J"),
-        ("계획 없이 떠나는 여행을 좋아한다.", "P"),
-        ("목표 달성을 위해 노력한다.", "J"),
-        ("새로운 경험을 추구한다.", "P"),
-        ("일정을 지키는 것이 중요하다.", "J"),
-        ("즉흥적으로 약속을 잡는다.", "P"),
-        ("정해진 규칙을 따르는 편이다.", "J"),
-        ("상황에 따라 융통성 있게 행동한다.", "P"),
-    ]
-
-    NUM_QUESTIONS = 48
-    CHOICES = [
-        ("매우 그렇다", 2, "#7a5cff"),
-        ("그렇다", 1, "#a98cff"),
-        ("중간", 0, "#cccccc"),
-        ("아니다", -1, "#ffb6b6"),
-        ("전혀 아니다", -2, "#ff5c5c"),
+    # 12문항 시나리오형 MBTI 질문 (차원당 3문항, A/B 이지선다)
+    QUESTIONS = [
+        # E/I
+        {
+            "situation": "회사 회식 자리에서 나는...",
+            "A": "분위기 메이커! 건배사부터 2차 장소 섭외까지 내가 다 함",
+            "B": "조용히 옆자리 한 명이랑 깊은 얘기 나누는 게 최고",
+            "dim": ("E", "I")
+        },
+        {
+            "situation": "주말에 갑자기 하루가 비었다!",
+            "A": "바로 카톡 단톡방에 '오늘 누구 놀 사람?' 폭격",
+            "B": "드디어 나만의 시간... 넷플릭스 + 배달앱 = 천국",
+            "dim": ("E", "I")
+        },
+        {
+            "situation": "새 팀에 배정받은 첫날...",
+            "A": "점심시간에 먼저 말 걸고 커피 한 잔 어때요? 시전",
+            "B": "일단 분위기 파악하고 천천히 한 명씩 친해지는 스타일",
+            "dim": ("E", "I")
+        },
+        # S/N
+        {
+            "situation": "친구가 '우리 여행 가자!' 했을 때 나는...",
+            "A": "바로 항공권 가격 비교하고 숙소 후기 검색 시작",
+            "B": "'거기 가면 이런 것도 하고 저런 것도 하고~' 상상 먼저",
+            "dim": ("S", "N")
+        },
+        {
+            "situation": "새 프로젝트 브리핑을 받을 때...",
+            "A": "일정, 예산, 담당자부터 확인. 구체적인 게 좋아",
+            "B": "큰 그림이 뭔지, 이걸 왜 하는지 맥락이 먼저 궁금함",
+            "dim": ("S", "N")
+        },
+        {
+            "situation": "맛집을 고를 때 나는...",
+            "A": "별점 4.5 이상, 후기 500개 이상, 검증된 곳만 감",
+            "B": "분위기 좋아 보이는 데, 한번 모험해볼까? 감으로 고름",
+            "dim": ("S", "N")
+        },
+        # T/F
+        {
+            "situation": "친구가 '나 시험 망했어...' 라고 할 때",
+            "A": "'몇 점인데? 다음엔 이렇게 공부해봐' 해결책 제시",
+            "B": "'에이 힘들었겠다... 맛있는 거 먹으러 가자' 공감 먼저",
+            "dim": ("T", "F")
+        },
+        {
+            "situation": "팀 회의에서 의견 충돌이 생겼다!",
+            "A": "데이터랑 근거 들고 와서 논리적으로 설득함",
+            "B": "모두의 의견을 들어보고 분위기가 안 상하게 조율함",
+            "dim": ("T", "F")
+        },
+        {
+            "situation": "후배가 실수를 반복할 때...",
+            "A": "정확히 뭐가 문제인지 팩트 위주로 짚어줌",
+            "B": "기분 상하지 않게 돌려서 말하거나 같이 해결해줌",
+            "dim": ("T", "F")
+        },
+        # J/P
+        {
+            "situation": "여행 갈 때 나의 스타일은?",
+            "A": "출발 2주 전부터 시간대별 일정표 완성! 맛집도 예약 끝",
+            "B": "비행기랑 숙소만 잡고 나머지는 현지에서 즉흥으로~",
+            "dim": ("J", "P")
+        },
+        {
+            "situation": "시험 or 마감이 다가올 때...",
+            "A": "일찍부터 조금씩 나눠서 준비해둠. 밀리면 불안",
+            "B": "마감 직전에 몰아서 하면 오히려 집중력 폭발함",
+            "dim": ("J", "P")
+        },
+        {
+            "situation": "오늘 할 일이 5개쯤 있을 때...",
+            "A": "체크리스트 쓰고 하나씩 완료 표시하는 그 쾌감",
+            "B": "일단 하고 싶은 거부터! 리스트는 만들어도 안 봄",
+            "dim": ("J", "P")
+        },
     ]
 
     MBTI_INFO = {
         "ISTJ": {
-            "desc": "신중하고 책임감이 강하며, 원칙과 규칙을 중시하는 현실주의자입니다. 계획적이고 꼼꼼하며, 조직 내에서 신뢰받는 유형입니다.",
-            "celeb": ["이병헌", "나문희", "모건 프리먼", "조지 워싱턴"],
+            "emoji": "📋",
+            "nickname": "생활 루틴의 제왕",
+            "desc": "계획표 없으면 불안한 당신! 약속 시간 10분 전 도착은 기본이고, 정리정돈은 거의 본능 수준. 믿음직한 인간 달력이자 조직의 버팀목.",
+            "vibe": "매일 같은 카페, 같은 메뉴, 그게 나의 안식처",
             "good": ["ESFP", "ESTP"],
-            "bad": ["ENFP", "ENTP"]
+            "bad": ["ENFP", "ENTP"],
+            "color": "#3B82F6"
         },
         "ISFJ": {
-            "desc": "따뜻하고 헌신적이며, 타인을 배려하는 성향이 강합니다. 조용하지만 책임감이 크고, 실용적이며 세심합니다.",
-            "celeb": ["아이유", "수지", "앤 해서웨이", "비욘세"],
+            "emoji": "🫶",
+            "nickname": "팀의 숨은 히어로",
+            "desc": "남들 안 챙기는 걸 챙기는 세심함의 끝판왕. 조용하지만 당신이 없으면 모든 게 무너짐. 따뜻한 마음으로 주변을 지키는 수호천사형.",
+            "vibe": "별말 안 했는데 내가 좋아하는 음료를 기억해주는 사람",
             "good": ["ESFP", "ESTP"],
-            "bad": ["ENTP", "ENFP"]
+            "bad": ["ENTP", "ENFP"],
+            "color": "#EC4899"
         },
         "INFJ": {
-            "desc": "이상주의적이고 통찰력이 뛰어나며, 깊은 공감 능력을 가진 조용한 리더형입니다. 가치와 의미를 중시합니다.",
-            "celeb": ["방탄소년단 RM", "마크 트웨인", "마틴 루터 킹", "니콜 키드먼"],
+            "emoji": "🔮",
+            "nickname": "인간 독심술사",
+            "desc": "말 안 해도 상대방 기분을 읽는 초능력자. 겉은 조용하지만 속은 이상과 신념으로 가득 찬 깊은 우물 같은 사람. 통찰력 만렙.",
+            "vibe": "카페 구석 자리에서 인류의 미래를 고민하는 중",
             "good": ["ENFP", "ENTP"],
-            "bad": ["ESTP", "ESFP"]
+            "bad": ["ESTP", "ESFP"],
+            "color": "#8B5CF6"
         },
         "INTJ": {
-            "desc": "독립적이고 전략적이며, 미래지향적 사고를 가진 완벽주의자입니다. 논리적이고 체계적인 계획을 선호합니다.",
-            "celeb": ["엘론 머스크", "마크 저커버그", "스티븐 호킹", "아인슈타인"],
+            "emoji": "🧠",
+            "nickname": "혼자서 다 하는 전략가",
+            "desc": "머릿속에 이미 3수 앞까지 계산 끝난 체스 마스터. 비효율을 참지 못하고, 혼자 일하는 게 제일 빠름. 쿨한 겉모습 속 완벽주의자.",
+            "vibe": "회의 5분 만에 핵심 파악하고 해결책까지 제시 완료",
             "good": ["ENFP", "ENTP"],
-            "bad": ["ESFP", "ESTP"]
+            "bad": ["ESFP", "ESTP"],
+            "color": "#1E293B"
         },
         "ISTP": {
-            "desc": "논리적이고 현실적이며, 문제 해결에 능한 실용주의자입니다. 즉흥적이고 유연하게 상황에 대처합니다.",
-            "celeb": ["정해인", "클린트 이스트우드", "브루스 윌리스", "마이클 조던"],
+            "emoji": "🛠️",
+            "nickname": "쿨한 해결사",
+            "desc": "말보다 행동이 앞서는 실전형 인간. 위기 상황에서 오히려 빛나고, 쓸데없는 감정 소모는 노땡큐. 필요할 때 딱 나타나는 해결사.",
+            "vibe": "말수 적지만 일 처리는 누구보다 빠른 사람",
             "good": ["ESFJ", "ENFJ"],
-            "bad": ["ENFP", "ENTP"]
+            "bad": ["ENFP", "ENTP"],
+            "color": "#64748B"
         },
         "ISFP": {
-            "desc": "온화하고 겸손하며, 감성적이고 예술적인 성향이 강합니다. 자유롭고 조용한 환경을 선호합니다.",
-            "celeb": ["뷔(방탄소년단)", "정우성", "마릴린 먼로", "브리트니 스피어스"],
+            "emoji": "🎨",
+            "nickname": "감성 자유영혼",
+            "desc": "남들 눈치 안 보고 내 취향대로 사는 진정한 자유인. 예술적 감각이 뛰어나고, 조용하지만 자기만의 세계가 확실한 감성 충만형.",
+            "vibe": "플레이리스트가 곧 내 인생 자서전",
             "good": ["ESFJ", "ENFJ"],
-            "bad": ["ENTJ", "ENFJ"]
+            "bad": ["ENTJ", "ESTJ"],
+            "color": "#F59E0B"
         },
         "INFP": {
-            "desc": "이상주의적이고 창의적이며, 깊은 내면의 신념을 가진 성찰가입니다. 감정이 풍부하고 타인에게 공감합니다.",
-            "celeb": ["정국(방탄소년단)", "조앤 K. 롤링", "윌리엄 셰익스피어", "조니 뎁"],
+            "emoji": "🌙",
+            "nickname": "몽상가 이상주의자",
+            "desc": "현실은 현실이고 내 머릿속엔 또 다른 세계가 있음. 감정이 풍부하고 공감 능력 만렙. 상상력으로 세상을 바꾸고 싶은 순수한 영혼.",
+            "vibe": "버스 창밖 보면서 단편 소설 한 편 뚝딱 구상 중",
             "good": ["ENFJ", "ENTJ"],
-            "bad": ["ESTJ", "ESFJ"]
+            "bad": ["ESTJ", "ESFJ"],
+            "color": "#A78BFA"
         },
         "INTP": {
-            "desc": "논리적이고 분석적이며, 독창적인 아이디어를 추구하는 사색가입니다. 이론과 원리를 탐구하는 것을 즐깁니다.",
-            "celeb": ["양세형", "빌 게이츠", "아이작 뉴턴", "앨버트 아인슈타인"],
+            "emoji": "💡",
+            "nickname": "생각이 멈추지 않는 분석가",
+            "desc": "쓸데없는 것까지 '왜?'를 달고 사는 탐구왕. 관심 분야 파면 밤새 위키피디아 서핑은 기본. 논리적 사고의 끝판왕이지만 현실 감각은 가끔 미아.",
+            "vibe": "샤워하다가 갑자기 우주의 원리가 궁금해진 사람",
             "good": ["ENTJ", "ENFJ"],
-            "bad": ["ESFJ", "ESTJ"]
+            "bad": ["ESFJ", "ESTJ"],
+            "color": "#06B6D4"
         },
         "ESTP": {
-            "desc": "적극적이고 현실적이며, 즉각적인 행동과 도전을 즐기는 활동가입니다. 위기 상황에서 침착하게 대처합니다.",
-            "celeb": ["김종국", "마돈나", "어니스트 헤밍웨이", "도널드 트럼프"],
+            "emoji": "🔥",
+            "nickname": "액션 히어로 본능형",
+            "desc": "생각보다 몸이 먼저 나가는 행동대장. 스릴을 즐기고, 어떤 상황에서도 당황하지 않는 타고난 적응력의 소유자. 인생은 즐기는 거야!",
+            "vibe": "번지점프? 당연히 첫 번째로 뛰어내리지",
             "good": ["ISFJ", "ISTJ"],
-            "bad": ["INFJ", "INFP"]
+            "bad": ["INFJ", "INFP"],
+            "color": "#EF4444"
         },
         "ESFP": {
-            "desc": "사교적이고 에너지 넘치며, 현재를 즐기는 낙천주의자입니다. 타인과 어울리며 긍정적인 분위기를 만듭니다.",
-            "celeb": ["박명수", "마일리 사이러스", "엘튼 존", "카메론 디아즈"],
+            "emoji": "🎉",
+            "nickname": "분위기 메이커 만렙",
+            "desc": "이 사람만 오면 모임 텐션이 200% 올라감. 지금 이 순간을 최대한 즐기는 천생 엔터테이너. 주변에 웃음이 끊이지 않는 에너지 뱅크.",
+            "vibe": "노래방 가면 마이크 놓을 줄 모르는 사람",
             "good": ["ISFJ", "ISTJ"],
-            "bad": ["INFJ", "INTJ"]
+            "bad": ["INFJ", "INTJ"],
+            "color": "#F97316"
         },
         "ENFP": {
-            "desc": "열정적이고 창의적이며, 새로운 가능성을 추구하는 아이디어 뱅크입니다. 타인과의 소통을 즐깁니다.",
-            "celeb": ["유재석", "로버트 다우니 주니어", "윌 스미스", "로빈 윌리엄스"],
+            "emoji": "🦋",
+            "nickname": "텐션 만렙 아이디어 뱅크",
+            "desc": "5분마다 새로운 아이디어가 폭발하는 창의력 대장. 사람 만나는 걸 좋아하고, 열정 하나만큼은 우주 끝까지 가는 긍정 에너지 폭발형.",
+            "vibe": "새벽 3시에 갑자기 사업 아이디어 떠올라서 메모하는 중",
             "good": ["INFJ", "INTJ"],
-            "bad": ["ISTJ", "ISFJ"]
+            "bad": ["ISTJ", "ISFJ"],
+            "color": "#10B981"
         },
         "ENTP": {
-            "desc": "논쟁을 즐기고, 창의적이며, 새로운 아이디어를 탐구하는 혁신가입니다. 토론과 변화를 좋아합니다.",
-            "celeb": ["김구라", "토마스 에디슨", "마크 트웨인", "레오나르도 다 빈치"],
+            "emoji": "⚡",
+            "nickname": "논쟁 마스터 혁신가",
+            "desc": "토론이 취미이자 특기인 말빨 끝판왕. 남들이 안 된다고 하면 오히려 더 불타오르는 반골 기질. 새로운 걸 만드는 데 천부적 재능.",
+            "vibe": "악마의 변호인 역할을 너무 재밌게 하는 사람",
             "good": ["INFJ", "INTJ"],
-            "bad": ["ISFJ", "ISTJ"]
+            "bad": ["ISFJ", "ISTJ"],
+            "color": "#FBBF24"
         },
         "ESTJ": {
-            "desc": "체계적이고 현실적이며, 리더십이 뛰어난 관리자형입니다. 규칙과 질서를 중시하고, 책임감이 강합니다.",
-            "celeb": ["박지성", "미셸 오바마", "조지 W. 부시", "엠마 왓슨"],
+            "emoji": "👔",
+            "nickname": "조직의 든든한 기둥",
+            "desc": "효율과 체계를 사랑하는 타고난 리더. '이건 이렇게 해야 돼'가 입버릇. 책임감 하나로 조직을 이끄는 현실 세계의 보스.",
+            "vibe": "팀 프로젝트에서 자연스럽게 리더가 되어있는 사람",
             "good": ["ISFP", "INFP"],
-            "bad": ["INFP", "ISFP"]
+            "bad": ["INFP", "ENFP"],
+            "color": "#334155"
         },
         "ESFJ": {
-            "desc": "친절하고 사교적이며, 타인을 돕는 것을 즐기는 협력가입니다. 공동체와 조화를 중요하게 생각합니다.",
-            "celeb": ["박보영", "테일러 스위프트", "휴 그랜트", "제니퍼 가너"],
+            "emoji": "🤗",
+            "nickname": "인간관계 만렙 케어형",
+            "desc": "주변 사람들 챙기는 게 본능인 천생 인싸. 생일 절대 안 까먹고, 모임 후기 올리는 것도 당연히 내 몫. 모두의 엄마/아빠 같은 존재.",
+            "vibe": "단톡방에서 공지 올리고 출석 체크하는 총무",
             "good": ["ISFP", "INFP"],
-            "bad": ["INTP", "ISTP"]
+            "bad": ["INTP", "ISTP"],
+            "color": "#FB7185"
         },
         "ENFJ": {
-            "desc": "이타적이고 카리스마 넘치며, 타인을 이끄는 리더형입니다. 타인의 감정에 민감하고, 협동을 중시합니다.",
-            "celeb": ["방탄소년단 진", "버락 오바마", "오프라 윈프리", "벤 애플렉"],
+            "emoji": "🌟",
+            "nickname": "타고난 인플루언서",
+            "desc": "말 한마디로 사람 마음을 움직이는 카리스마의 소유자. 남 돕는 게 행복이고, 팀의 분위기를 이끄는 자연스러운 리더. 공감 + 실행력 겸비.",
+            "vibe": "후배 고민 상담하다 보면 새벽 2시인 사람",
             "good": ["INFP", "ISFP"],
-            "bad": ["ISTP", "INTP"]
+            "bad": ["ISTP", "INTP"],
+            "color": "#7C3AED"
         },
         "ENTJ": {
-            "desc": "결단력 있고 전략적인 리더형입니다. 목표 달성을 위해 체계적으로 계획하고 추진합니다.",
-            "celeb": ["빌 클린턴", "스티브 잡스", "고든 램지", "마거릿 대처"],
+            "emoji": "🦅",
+            "nickname": "CEO형 빌런 리더",
+            "desc": "목표가 생기면 무조건 달성하는 추진력 괴물. 전략적 사고 + 실행력 조합으로 어디서든 리더가 됨. 비효율을 참지 못하는 완벽주의자.",
+            "vibe": "신입인데 벌써 업무 프로세스 개선안 제출한 사람",
             "good": ["INTP", "INFP"],
-            "bad": ["ISFP", "INFP"]
+            "bad": ["ISFP", "INFP"],
+            "color": "#0F172A"
         },
     }
 
-    # 질문 순서 랜덤화 (세션별 고정)
-    if "mbti_q_order" not in st.session_state or len(st.session_state.mbti_q_order) != NUM_QUESTIONS:
-        by_type = {"E":[], "I":[], "S":[], "N":[], "T":[], "F":[], "J":[], "P":[]}
-        for q, t in QUESTIONS_POOL:
-            by_type[t].append((q, t))
-        selected = []
-        per_type = NUM_QUESTIONS // 4 // 2
-        for t1, t2 in [("E","I"),("S","N"),("T","F"),("J","P")]:
-            selected += random.sample(by_type[t1], per_type)
-            selected += random.sample(by_type[t2], per_type)
-        random.shuffle(selected)
-        st.session_state.mbti_q_order = selected
+    NUM_QUESTIONS = len(QUESTIONS)
 
-    QUESTIONS = st.session_state.mbti_q_order
-
-    # 상태 초기화
-    if "mbti_answers" not in st.session_state or len(st.session_state.mbti_answers) != NUM_QUESTIONS:
+    # 세션 상태 초기화
+    if "mbti_answers" not in st.session_state:
         st.session_state.mbti_answers = [None] * NUM_QUESTIONS
     if "mbti_step" not in st.session_state:
         st.session_state.mbti_step = 0
+    if "mbti_done" not in st.session_state:
+        st.session_state.mbti_done = False
 
+    # CSS
     st.markdown("""
-        <style>
-        .big-font { font-size: 1.5rem !important; }
-        .mbti-btn-row { display: flex; gap: 1.2rem; margin: 1.2rem 0 2.2rem 0; justify-content: center; }
-        .mbti-btn {
-            font-size: 1.15rem !important;
-            font-weight: 600;
-            border: none;
-            border-radius: 12px;
-            padding: 0.7em 1.7em;
-            margin: 0 0.2em;
-            cursor: pointer;
-            transition: background 0.2s, color 0.2s, box-shadow 0.2s;
-            background: #f4f4ff;
-            color: #333;
-            box-shadow: 0 2px 8px #e0e0ff33;
-        }
-        .mbti-btn.selected {
-            color: #fff !important;
-            box-shadow: 0 4px 16px #bbaaff44;
-        }
-        .fadein-q {
-            animation: fadein 0.7s;
-        }
-        @keyframes fadein {
-            from { opacity: 0; transform: translateY(30px);}
-            to { opacity: 1; transform: translateY(0);}
-        }
-        .percent-bar {
-            height: 32px;
-            border-radius: 16px;
-            background: #f0f0ff;
-            margin-bottom: 0.5em;
-            overflow: hidden;
-            display: flex;
-            align-items: center;
-        }
-        .percent-bar-inner {
-            height: 100%;
-            border-radius: 16px;
-            background: linear-gradient(90deg, #9D5CFF 10%, #5CFFD1 90%);
-            color: #fff;
-            font-weight: bold;
-            font-size: 1.1rem;
-            display: flex;
-            align-items: center;
-            justify-content: flex-end;
-            padding-right: 1em;
-            transition: width 0.5s;
-        }
-        </style>
+    <style>
+    .mbti-title {
+        text-align: center;
+        font-size: 2.2rem;
+        font-weight: 900;
+        margin-bottom: 0.2em;
+        background: linear-gradient(135deg, #7c3aed, #ec4899, #f59e0b);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+    }
+    .mbti-subtitle {
+        text-align: center;
+        font-size: 1.1rem;
+        color: #94a3b8;
+        margin-bottom: 2em;
+    }
+    .situation-card {
+        background: linear-gradient(135deg, rgba(124,58,237,0.12), rgba(236,72,153,0.08));
+        border: 1px solid rgba(124,58,237,0.25);
+        border-radius: 20px;
+        padding: 2em 1.5em;
+        margin: 1em 0;
+        animation: slideUp 0.5s ease-out;
+    }
+    .situation-label {
+        font-size: 0.85rem;
+        color: #a78bfa;
+        font-weight: 700;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        margin-bottom: 0.5em;
+    }
+    .situation-text {
+        font-size: 1.4rem;
+        font-weight: 800;
+        margin-bottom: 0.3em;
+    }
+    .progress-container {
+        display: flex;
+        align-items: center;
+        gap: 0.8em;
+        margin: 1.5em 0;
+    }
+    .progress-bar-bg {
+        flex: 1;
+        height: 8px;
+        background: rgba(148,163,184,0.2);
+        border-radius: 4px;
+        overflow: hidden;
+    }
+    .progress-bar-fill {
+        height: 100%;
+        border-radius: 4px;
+        background: linear-gradient(90deg, #7c3aed, #ec4899);
+        transition: width 0.4s ease;
+    }
+    .progress-text {
+        font-size: 0.9rem;
+        font-weight: 700;
+        color: #a78bfa;
+        min-width: 3em;
+        text-align: right;
+    }
+    .result-hero {
+        text-align: center;
+        padding: 2em 1em;
+        animation: slideUp 0.6s ease-out;
+    }
+    .result-emoji {
+        font-size: 4rem;
+        margin-bottom: 0.2em;
+    }
+    .result-type {
+        font-size: 2.5rem;
+        font-weight: 900;
+        letter-spacing: 0.05em;
+        margin-bottom: 0.1em;
+    }
+    .result-nickname {
+        font-size: 1.3rem;
+        font-weight: 700;
+        margin-bottom: 0.5em;
+    }
+    .result-card {
+        border-radius: 20px;
+        padding: 1.5em;
+        margin: 1em 0;
+        border: 1px solid rgba(255,255,255,0.1);
+    }
+    .result-vibe {
+        font-style: italic;
+        font-size: 1.05rem;
+        color: #94a3b8;
+        text-align: center;
+        margin: 1em 0;
+        padding: 1em;
+        border-radius: 12px;
+        background: rgba(148,163,184,0.08);
+    }
+    .compat-section {
+        display: flex;
+        gap: 1em;
+        margin-top: 1em;
+    }
+    .compat-card {
+        flex: 1;
+        padding: 1em;
+        border-radius: 14px;
+        text-align: center;
+    }
+    .compat-good {
+        background: rgba(16,185,129,0.1);
+        border: 1px solid rgba(16,185,129,0.3);
+    }
+    .compat-bad {
+        background: rgba(239,68,68,0.1);
+        border: 1px solid rgba(239,68,68,0.3);
+    }
+    .compat-label {
+        font-size: 0.85rem;
+        font-weight: 700;
+        margin-bottom: 0.3em;
+    }
+    .compat-types {
+        font-size: 1.1rem;
+        font-weight: 800;
+    }
+    .dim-bar-row {
+        display: flex;
+        align-items: center;
+        margin: 0.6em 0;
+        gap: 0.5em;
+    }
+    .dim-label {
+        font-size: 1rem;
+        font-weight: 800;
+        width: 2em;
+        text-align: center;
+    }
+    .dim-bar-bg {
+        flex: 1;
+        height: 28px;
+        background: rgba(148,163,184,0.15);
+        border-radius: 14px;
+        overflow: hidden;
+        position: relative;
+    }
+    .dim-bar-fill {
+        height: 100%;
+        border-radius: 14px;
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        padding-right: 0.8em;
+        font-size: 0.85rem;
+        font-weight: 700;
+        color: #fff;
+        transition: width 0.6s ease;
+    }
+    @keyframes slideUp {
+        from { opacity: 0; transform: translateY(24px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    </style>
     """, unsafe_allow_html=True)
 
-    st.title("MBTI 검사 (질문 순서 랜덤, 정밀도 향상)")
-    st.markdown('<div class="big-font">각 문항마다 더 나와 비슷한 쪽을 선택하세요.<br>질문은 한 번에 하나씩, 이전 버튼으로 답을 수정할 수 있습니다.</div>', unsafe_allow_html=True)
+    # 결과 화면
+    if st.session_state.mbti_done:
+        answers = st.session_state.mbti_answers
+        scores = {"E": 0, "I": 0, "S": 0, "N": 0, "T": 0, "F": 0, "J": 0, "P": 0}
+        for i, q in enumerate(QUESTIONS):
+            chosen = answers[i]
+            if chosen == 0:
+                scores[q["dim"][0]] += 1
+            else:
+                scores[q["dim"][1]] += 1
 
-    idx = st.session_state.mbti_step
-    q, code = QUESTIONS[idx]
+        mbti = ""
+        mbti += "E" if scores["E"] >= scores["I"] else "I"
+        mbti += "S" if scores["S"] >= scores["N"] else "N"
+        mbti += "T" if scores["T"] >= scores["F"] else "F"
+        mbti += "J" if scores["J"] >= scores["P"] else "P"
 
-    # 진행 상황 표시
-    st.markdown(
-        f"""
-        <div style="text-align:center; margin-bottom:0.7em; font-size:1.15rem; color:#7a5cff; font-weight:600;">
-            <span>문항 {idx+1} / {NUM_QUESTIONS}</span>
+        info = MBTI_INFO[mbti]
+        pairs = [("E", "I"), ("S", "N"), ("T", "F"), ("J", "P")]
+
+        st.markdown(f"""
+        <div class="result-hero">
+            <div class="result-emoji">{info['emoji']}</div>
+            <div class="result-type" style="color:{info['color']}">{mbti}</div>
+            <div class="result-nickname" style="color:{info['color']}">{info['nickname']}</div>
         </div>
-        """,
-        unsafe_allow_html=True
-    )
+        """, unsafe_allow_html=True)
 
-    st.markdown(f'<div class="big-font fadein-q"><b>{idx+1}. {q}</b></div>', unsafe_allow_html=True)
-    btn_cols = st.columns(len(CHOICES), gap="small")
-    selected = st.session_state.mbti_answers[idx]
-    for i, (label, val, color) in enumerate(CHOICES):
-        btn_style = f"mbti-btn"
-        if selected == i:
-            btn_style += " selected"
-        with btn_cols[i]:
-            if st.button(label, key=f"mbti_btn_{idx}_{i}", help=label, use_container_width=True):
-                st.session_state.mbti_answers[idx] = i
-                if idx < NUM_QUESTIONS - 1:
-                    st.session_state.mbti_step = idx + 1
-                st.rerun()
-    st.markdown(f"""
-        <style>
-        [data-testid="stButton"][key="mbti_btn_{idx}_0"] button.mbti-btn {{background:{CHOICES[0][2]};}}
-        [data-testid="stButton"][key="mbti_btn_{idx}_1"] button.mbti-btn {{background:{CHOICES[1][2]};}}
-        [data-testid="stButton"][key="mbti_btn_{idx}_2"] button.mbti-btn {{background:{CHOICES[2][2]};}}
-        [data-testid="stButton"][key="mbti_btn_{idx}_3"] button.mbti-btn {{background:{CHOICES[3][2]};}}
-        [data-testid="stButton"][key="mbti_btn_{idx}_4"] button.mbti-btn {{background:{CHOICES[4][2]};}}
-        </style>
-    """, unsafe_allow_html=True)
+        st.markdown(f"""
+        <div class="result-card" style="background: linear-gradient(135deg, {info['color']}15, {info['color']}08);">
+            <div style="font-size:1.1rem; line-height:1.7;">{info['desc']}</div>
+        </div>
+        """, unsafe_allow_html=True)
 
-    nav1, nav2, nav3 = st.columns([1,2,1])
-    with nav1:
-        if st.button("이전", disabled=(idx==0), use_container_width=True):
-            st.session_state.mbti_step = max(0, idx-1)
-            st.rerun()
+        st.markdown(f"""
+        <div class="result-vibe">"{info['vibe']}"</div>
+        """, unsafe_allow_html=True)
 
-    # 모든 답변이 완료되면 결과 표시
-    if "mbti_answers" in st.session_state and None not in st.session_state.mbti_answers:
-        if st.button("결과 보기", use_container_width=True):
-            scores = {"E":0, "I":0, "S":0, "N":0, "T":0, "F":0, "J":0, "P":0}
-            for idx2, (q2, code2) in enumerate(QUESTIONS):
-                val = st.session_state.mbti_answers[idx2]
-                score = CHOICES[val][1]
-                if code2 in scores:
-                    scores[code2] += score
-
-            e_score = sum(CHOICES[st.session_state.mbti_answers[i]][1] for i, (_, c) in enumerate(QUESTIONS) if c == "E")
-            i_score = sum(CHOICES[st.session_state.mbti_answers[i]][1] for i, (_, c) in enumerate(QUESTIONS) if c == "I")
-            s_score = sum(CHOICES[st.session_state.mbti_answers[i]][1] for i, (_, c) in enumerate(QUESTIONS) if c == "S")
-            n_score = sum(CHOICES[st.session_state.mbti_answers[i]][1] for i, (_, c) in enumerate(QUESTIONS) if c == "N")
-            t_score = sum(CHOICES[st.session_state.mbti_answers[i]][1] for i, (_, c) in enumerate(QUESTIONS) if c == "T")
-            f_score = sum(CHOICES[st.session_state.mbti_answers[i]][1] for i, (_, c) in enumerate(QUESTIONS) if c == "F")
-            j_score = sum(CHOICES[st.session_state.mbti_answers[i]][1] for i, (_, c) in enumerate(QUESTIONS) if c == "J")
-            p_score = sum(CHOICES[st.session_state.mbti_answers[i]][1] for i, (_, c) in enumerate(QUESTIONS) if c == "P")
-
-            e_pct = int(round((e_score + 10) / 20 * 100))
-            i_pct = 100 - e_pct
-            s_pct = int(round((s_score + 10) / 20 * 100))
-            n_pct = 100 - s_pct
-            t_pct = int(round((t_score + 10) / 20 * 100))
-            f_pct = 100 - t_pct
-            j_pct = int(round((j_score + 10) / 20 * 100))
-            p_pct = 100 - j_pct
-
-            mbti = ""
-            mbti += "E" if e_pct >= i_pct else "I"
-            mbti += "S" if s_pct >= n_pct else "N"
-            mbti += "T" if t_pct >= f_pct else "F"
-            mbti += "J" if j_pct >= p_pct else "P"
-
-            st.markdown(f"<div class='big-font'><b>당신의 MBTI는 <span style='color:#7a5cff'>{mbti}</span> 입니다!</b></div>", unsafe_allow_html=True)
-            st.markdown("<br>", unsafe_allow_html=True)
+        # 차원별 비율 바
+        st.markdown("#### 나의 성향 비율")
+        for t1, t2 in pairs:
+            total = scores[t1] + scores[t2]
+            if total == 0:
+                pct1 = 50
+            else:
+                pct1 = int(round(scores[t1] / total * 100))
+            pct2 = 100 - pct1
+            c1 = "#7c3aed" if pct1 >= pct2 else "rgba(148,163,184,0.4)"
+            c2 = "#ec4899" if pct2 > pct1 else "rgba(148,163,184,0.4)"
             st.markdown(f"""
-            <div class="big-font"><b>각 지표별 비율</b></div>
-            <div class="percent-bar"><div class="percent-bar-inner" style="width:{e_pct}%">E {e_pct}%</div></div>
-            <div class="percent-bar"><div class="percent-bar-inner" style="width:{i_pct}%">I {i_pct}%</div></div>
-            <div class="percent-bar"><div class="percent-bar-inner" style="width:{s_pct}%">S {s_pct}%</div></div>
-            <div class="percent-bar"><div class="percent-bar-inner" style="width:{n_pct}%">N {n_pct}%</div></div>
-            <div class="percent-bar"><div class="percent-bar-inner" style="width:{t_pct}%">T {t_pct}%</div></div>
-            <div class="percent-bar"><div class="percent-bar-inner" style="width:{f_pct}%">F {f_pct}%</div></div>
-            <div class="percent-bar"><div class="percent-bar-inner" style="width:{j_pct}%">J {j_pct}%</div></div>
-            <div class="percent-bar"><div class="percent-bar-inner" style="width:{p_pct}%">P {p_pct}%</div></div>
+            <div class="dim-bar-row">
+                <div class="dim-label" style="color:{c1}">{t1}</div>
+                <div class="dim-bar-bg">
+                    <div class="dim-bar-fill" style="width:{pct1}%; background:{c1};">{pct1}%</div>
+                </div>
+                <div class="dim-bar-bg">
+                    <div class="dim-bar-fill" style="width:{pct2}%; background:{c2};">{pct2}%</div>
+                </div>
+                <div class="dim-label" style="color:{c2}">{t2}</div>
+            </div>
             """, unsafe_allow_html=True)
 
-            info = MBTI_INFO.get(mbti, None)
-            if info:
-                st.markdown(f"""
-                <div style="margin-top:2em; padding:1.5em 1.5em 1.2em 1.5em; background:#f8f6ff; border-radius:18px; border:1.5px solid #e3e6f3;">
-                    <div style="font-size:1.25rem; font-weight:700; color:#7a5cff; margin-bottom:0.5em;">[{mbti}] 해설</div>
-                    <div style="font-size:1.08rem; color:#444; margin-bottom:1em;">{info['desc']}</div>
-                    <div style="font-size:1.08rem; color:#7a5cff; font-weight:600; margin-bottom:0.3em;">대표 연예인/유명인</div>
-                    <div style="font-size:1.05rem; color:#333; margin-bottom:1em;">{', '.join(info['celeb'])}</div>
-                    <div style="font-size:1.08rem; color:#7a5cff; font-weight:600; margin-bottom:0.3em;">잘 맞는 MBTI</div>
-                    <div style="font-size:1.05rem; color:#333; margin-bottom:1em;">{', '.join(info['good'])}</div>
-                    <div style="font-size:1.08rem; color:#7a5cff; font-weight:600; margin-bottom:0.3em;">상성이 좋지 않은 MBTI</div>
-                    <div style="font-size:1.05rem; color:#333;">{', '.join(info['bad'])}</div>
-                </div>
-                """, unsafe_allow_html=True)
-            else:
-                st.info("MBTI 해설 정보를 찾을 수 없습니다.")
+        # 궁합
+        st.markdown(f"""
+        <div class="compat-section">
+            <div class="compat-card compat-good">
+                <div class="compat-label" style="color:#10b981;">찰떡궁합 💚</div>
+                <div class="compat-types" style="color:#10b981;">{', '.join(info['good'])}</div>
+            </div>
+            <div class="compat-card compat-bad">
+                <div class="compat-label" style="color:#ef4444;">환장궁합 💔</div>
+                <div class="compat-types" style="color:#ef4444;">{', '.join(info['bad'])}</div>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
 
-            # 결과의 맨 마지막에만 '다시 검사하기' 버튼
-            if st.button("다시 검사하기", use_container_width=True):
-                for key in ["mbti_answers", "mbti_step", "mbti_q_order"]:
-                    if key in st.session_state:
-                        del st.session_state[key]
-                st.rerun()
-                return
+        st.markdown("<br>", unsafe_allow_html=True)
+        if st.button("다시 검사하기", use_container_width=True):
+            st.session_state.mbti_answers = [None] * NUM_QUESTIONS
+            st.session_state.mbti_step = 0
+            st.session_state.mbti_done = False
+            st.rerun()
+        return
+
+    # 테스트 진행 화면
+    st.markdown('<div class="mbti-title">MBTI 시나리오 테스트</div>', unsafe_allow_html=True)
+    st.markdown('<div class="mbti-subtitle">12개 상황, 직감으로 골라주세요!</div>', unsafe_allow_html=True)
+
+    idx = st.session_state.mbti_step
+    q = QUESTIONS[idx]
+    pct = int((idx / NUM_QUESTIONS) * 100)
+
+    # 프로그레스 바
+    st.markdown(f"""
+    <div class="progress-container">
+        <div class="progress-bar-bg">
+            <div class="progress-bar-fill" style="width:{pct}%"></div>
+        </div>
+        <div class="progress-text">{idx+1}/{NUM_QUESTIONS}</div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    # 질문 카드
+    st.markdown(f"""
+    <div class="situation-card">
+        <div class="situation-label">SITUATION {idx+1}</div>
+        <div class="situation-text">{q['situation']}</div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    col1, col2 = st.columns(2, gap="medium")
+    with col1:
+        if st.button(f"A. {q['A']}", key=f"mbti_a_{idx}", use_container_width=True):
+            st.session_state.mbti_answers[idx] = 0
+            if idx < NUM_QUESTIONS - 1:
+                st.session_state.mbti_step = idx + 1
+            else:
+                st.session_state.mbti_done = True
+            st.rerun()
+    with col2:
+        if st.button(f"B. {q['B']}", key=f"mbti_b_{idx}", use_container_width=True):
+            st.session_state.mbti_answers[idx] = 1
+            if idx < NUM_QUESTIONS - 1:
+                st.session_state.mbti_step = idx + 1
+            else:
+                st.session_state.mbti_done = True
+            st.rerun()
+
+    # 이전 버튼
+    if idx > 0:
+        if st.button("← 이전", key="mbti_prev"):
+            st.session_state.mbti_step = idx - 1
+            st.rerun()
