@@ -6,17 +6,25 @@ import plotly.express as px
 import plotly.graph_objects as go
 from datetime import datetime
 import os
+from mongo_env import get_mongo_uri, get_mongo_db, get_mongo_collection
 
 def run():
     # MongoDB 연결
-    MONGO_URI = "mongodb+srv://sajw1994:dWU6s4KKERQn4ynF@cluster0.c9zb3hn.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"
+    MONGO_URI = get_mongo_uri()
+    if not MONGO_URI:
+        st.error("MongoDB 연결 정보(MONGODB_URI)가 설정되지 않았습니다.")
+        st.info("로컬: `.env` 설정 / 배포: Streamlit Secrets 설정을 추가하세요.")
+        return
+
+    DB_NAME = get_mongo_db("automation_db")
+    COLLECTION_NAME = get_mongo_collection("inspection_records")
     
     def save_to_mongodb(result_type, description, user_info):
         try:
             client = MongoClient(MONGO_URI, serverSelectionTimeoutMS=5000)
             client.admin.command('ping')
-            db = client['automation_db']
-            collection = db['inspection_records']
+            db = client[DB_NAME]
+            collection = db[COLLECTION_NAME]
             
             data = {
                 'result_type': result_type,
@@ -38,8 +46,8 @@ def run():
         try:
             client = MongoClient(MONGO_URI, serverSelectionTimeoutMS=5000)
             client.admin.command('ping')
-            db = client['automation_db']
-            collection = db['inspection_records']
+            db = client[DB_NAME]
+            collection = db[COLLECTION_NAME]
             
             # 테토에겐 데이터만 집계
             pipeline = [

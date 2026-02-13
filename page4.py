@@ -13,14 +13,21 @@ from odf.opendocument import load
 from odf.element import Element, Text
 from pymongo import MongoClient
 from pymongo.errors import ConnectionFailure
+from mongo_env import get_mongo_uri, get_mongo_db, get_mongo_collection
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 def run():
     st.title("도급위탁용역 점검표 생성기 (ODT)")
     
-    # --- 사용자님의 실제 연결 정보로 업데이트 ---
-    MONGO_URI = "mongodb+srv://sajw1994:dWU6s4KKERQn4ynF@cluster0.c9zb3hn.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"
+    MONGO_URI = get_mongo_uri()
+    if not MONGO_URI:
+        st.error("MongoDB 연결 정보(MONGODB_URI)가 설정되지 않았습니다.")
+        st.info("로컬: `.env` 설정 / 배포: Streamlit Secrets 설정을 추가하세요.")
+        return
+
+    DB_NAME = get_mongo_db("automation_db")
+    COLLECTION_NAME = get_mongo_collection("inspection_records")
     
     if platform.system() == "Windows":
         base_path = os.path.join(os.path.expanduser('~'), "Desktop", "사진우", "AI", "도급위탁용역자동화")
@@ -118,8 +125,8 @@ def run():
                     client = MongoClient(MONGO_URI, serverSelectionTimeoutMS=5000)
                     client.admin.command('ping')
                     st.info("✅ MongoDB에 성공적으로 연결되었습니다.")
-                    db = client['automation_db']
-                    collection = db['inspection_records']
+                    db = client[DB_NAME]
+                    collection = db[COLLECTION_NAME]
                     st.info(f"{len(all_data_to_save)}개의 데이터를 저장합니다...")
                     result = collection.insert_many(all_data_to_save)
                     st.success(f"✅ {len(result.inserted_ids)}개의 데이터가 MongoDB에 성공적으로 저장되었습니다.")
