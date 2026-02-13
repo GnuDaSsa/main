@@ -39,9 +39,12 @@ def image_to_data_uri(image_path: str) -> str | None:
 
 
 st.set_page_config(page_title="GnuDaS_GPT_World", layout="wide")
-background_image_path = os.path.join(BASE_DIR, "..", "monitor_image.png")
-if not os.path.exists(background_image_path):
-    background_image_path = os.path.join(BASE_DIR, "assets", "flash_banner.png")
+background_candidates = [
+    os.path.join(BASE_DIR, "monitor_image.png"),
+    os.path.join(BASE_DIR, "assets", "monitor_image.png"),
+    os.path.join(BASE_DIR, "assets", "flash_banner.png"),
+]
+background_image_path = next((p for p in background_candidates if os.path.exists(p)), None)
 flash_data_uri = image_to_data_uri(background_image_path)
 
 st.markdown(
