@@ -223,40 +223,30 @@ div[data-testid="stSidebarUserContent"] { padding:1rem; }
     unsafe_allow_html=True,
 )
 
-HOME = "\ud648"
-MBTI = "MBTI \uac80\uc0ac\uae30"
-TETO = "\ud14c\ud1a0\uc5d0\uac90 \ud14c\uc2a4\ud2b8"
-PDF = "PDF \uc77c\uad04 \ubcc0\ud658"
-CHECK = "\ub3c4\uae09\uc704\ud0c1\uc6a9\uc5ed \uc810\uac80\ud45c \uc0dd\uc131"
-PRESS = "\uc0dd\uc131\ud615 AI \ubcf4\ub3c4\uc790\ub8cc \uc0dd\uc131\uae30"
-WATER_DOC = "\uae09\uc218\uacf5\uc0ac \uacf5\ubb38 \uc790\ub3d9\ud654"
-WATER_REPORT = "\uc815\uc218\uae30 \uc2e0\uace0"
+HOME = "Home"
+MBTI = "MBTI 검사기"
+TETO = "테토에겐 테스트"
+CHECK = "도급위탁용역 점검표 생성"
+PRESS = "생성형 AI 보도자료 생성기"
 
 if "page" not in st.session_state:
     st.session_state.page = HOME
 
 with st.sidebar:
-    st.markdown('<div class="sidebar-section-title">common</div>', unsafe_allow_html=True)
+    st.markdown('<div class="sidebar-section-title">Function</div>', unsafe_allow_html=True)
     if st.button(HOME, use_container_width=True):
         st.session_state.page = HOME
     if st.button(MBTI, use_container_width=True):
         st.session_state.page = MBTI
     if st.button(TETO, use_container_width=True):
         st.session_state.page = TETO
-    if st.button(PDF, use_container_width=True):
-        st.session_state.page = PDF
     if st.button(CHECK, use_container_width=True):
         st.session_state.page = CHECK
     if st.button(PRESS, use_container_width=True):
         st.session_state.page = PRESS
 
     st.markdown('<div class="sidebar-divider"></div>', unsafe_allow_html=True)
-    st.markdown('<div class="sidebar-section-title">custom</div>', unsafe_allow_html=True)
-    with st.expander("\uc218\ub3c4\uc2dc\uc124\uacfc", expanded=(st.session_state.get("page") in [WATER_DOC, WATER_REPORT])):
-        if st.button("\u2514 " + WATER_DOC, use_container_width=True):
-            st.session_state.page = WATER_DOC
-        if st.button("\u2514 " + WATER_REPORT, use_container_width=True):
-            st.session_state.page = WATER_REPORT
+    st.markdown('<div class="sidebar-section-title">Community</div>', unsafe_allow_html=True)
 
 if flash_data_uri:
     st.markdown(
@@ -272,12 +262,12 @@ page_to_run_map = {
     HOME: None,
     MBTI: "page6.py",
     TETO: "page7.py",
-    WATER_DOC: "page1.py",
-    WATER_REPORT: "page2.py",
-    PDF: "page3.py",
     CHECK: "page4.py",
     PRESS: "page5.py",
 }
+
+if st.session_state.page not in page_to_run_map:
+    st.session_state.page = HOME
 
 page_file = page_to_run_map.get(st.session_state.page)
 
