@@ -11,23 +11,17 @@ import platform
 # MongoDB 및 ODT 관련 라이브러리 import
 from odf.opendocument import load
 from odf.element import Element, Text
-from pymongo import MongoClient
-from pymongo.errors import ConnectionFailure
-from mongo_env import get_mongo_uri, get_mongo_db, get_mongo_collection
+from mongo_env import get_mongo_uri, get_collection
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 def run():
     st.title("도급위탁용역 점검표 생성기 (ODT)")
     
-    MONGO_URI = get_mongo_uri()
-    if not MONGO_URI:
+    if not get_mongo_uri():
         st.error("MongoDB 연결 정보(MONGODB_URI)가 설정되지 않았습니다.")
         st.info("로컬: `.env` 설정 / 배포: Streamlit Secrets 설정을 추가하세요.")
         return
-
-    DB_NAME = get_mongo_db("automation_db")
-    COLLECTION_NAME = get_mongo_collection("inspection_records")
     
     if platform.system() == "Windows":
         base_path = os.path.join(os.path.expanduser('~'), "Desktop", "사진우", "AI", "도급위탁용역자동화")
@@ -118,26 +112,18 @@ def run():
                     if f"date2_page4_{i}" not in st.session_state: st.session_state[f"date2_page4_{i}"] = ""
 
                 # MongoDB 저장 로직
-                client = None
                 try:
                     all_data_to_save = st.session_state.extracted_page4
                     st.info("MongoDB에 연결 중...")
-                    client = MongoClient(MONGO_URI, serverSelectionTimeoutMS=5000)
-                    client.admin.command('ping')
-                    st.info("✅ MongoDB에 성공적으로 연결되었습니다.")
-                    db = client[DB_NAME]
-                    collection = db[COLLECTION_NAME]
-                    st.info(f"{len(all_data_to_save)}개의 데이터를 저장합니다...")
-                    result = collection.insert_many(all_data_to_save)
-                    st.success(f"✅ {len(result.inserted_ids)}개의 데이터가 MongoDB에 성공적으로 저장되었습니다.")
-                except ConnectionFailure as e:
-                    st.error(f"❌ MongoDB 연결에 실패했습니다. 오류: {e}")
+                    collection = get_collection("automation_db", "inspection_records")
+                    if collection is None:
+                        st.error("MongoDB 연결에 실패했습니다. URI 및 네트워크 설정을 확인하세요.")
+                    else:
+                        st.info(f"{len(all_data_to_save)}개의 데이터를 저장합니다...")
+                        result = collection.insert_many(all_data_to_save)
+                        st.success(f"{len(result.inserted_ids)}개의 데이터가 MongoDB에 성공적으로 저장되었습니다.")
                 except Exception as e:
-                    st.error(f"❌ 데이터를 저장하는 중 오류가 발생했습니다: {e}")
-                finally:
-                    if client:
-                        client.close()
-                        st.info("🔌 MongoDB 연결이 종료되었습니다.")
+                    st.error(f"데이터를 저장하는 중 오류가 발생했습니다: {e}")
     
     with left_col:
         if st.session_state.get("extracted_page4"):

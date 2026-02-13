@@ -1,12 +1,10 @@
 import streamlit as st
 import random
-from pymongo import MongoClient
-from pymongo.errors import ConnectionFailure
 import plotly.express as px
 import plotly.graph_objects as go
 from datetime import datetime
 import os
-from mongo_env import get_mongo_uri, get_mongo_db, get_mongo_collection
+from mongo_env import get_mongo_uri, get_collection
 
 def run():
     # MongoDB 연결
@@ -16,55 +14,43 @@ def run():
         st.info("로컬: `.env` 설정 / 배포: Streamlit Secrets 설정을 추가하세요.")
         return
 
-    DB_NAME = get_mongo_db("automation_db")
-    COLLECTION_NAME = get_mongo_collection("inspection_records")
-    
     def save_to_mongodb(result_type, description, user_info):
         try:
-            client = MongoClient(MONGO_URI, serverSelectionTimeoutMS=5000)
-            client.admin.command('ping')
-            db = client[DB_NAME]
-            collection = db[COLLECTION_NAME]
-            
+            collection = get_collection("automation_db", "inspection_records")
+            if collection is None:
+                st.error("MongoDB 연결에 실패했습니다.")
+                return False
             data = {
                 'result_type': result_type,
                 'description': description,
                 'user_info': user_info,
                 'created_at': datetime.now(),
                 'city': user_info.get('city', '성남시'),
-                'source': '테토에겐'  # 구분을 위해 source 필드 추가
+                'source': '테토에겐'
             }
-            
-            result = collection.insert_one(data)
-            client.close()
+            collection.insert_one(data)
             return True
         except Exception as e:
             st.error(f"데이터 저장 중 오류: {e}")
             return False
-    
+
     def get_statistics():
         try:
-            client = MongoClient(MONGO_URI, serverSelectionTimeoutMS=5000)
-            client.admin.command('ping')
-            db = client[DB_NAME]
-            collection = db[COLLECTION_NAME]
-            
-            # 테토에겐 데이터만 집계
+            collection = get_collection("automation_db", "inspection_records")
+            if collection is None:
+                return [], []
             pipeline = [
                 {"$match": {"source": "테토에겐"}},
                 {"$group": {"_id": "$result_type", "count": {"$sum": 1}}},
                 {"$sort": {"count": -1}}
             ]
             results = list(collection.aggregate(pipeline))
-            
             seongnam_pipeline = [
                 {"$match": {"city": "성남시", "source": "테토에겐"}},
                 {"$group": {"_id": "$result_type", "count": {"$sum": 1}}},
                 {"$sort": {"count": -1}}
             ]
             seongnam_results = list(collection.aggregate(seongnam_pipeline))
-            
-            client.close()
             return results, seongnam_results
         except Exception as e:
             st.error(f"통계 조회 중 오류: {e}")

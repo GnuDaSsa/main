@@ -3,34 +3,7 @@ from datetime import datetime, timezone
 
 import streamlit as st
 
-try:
-    from pymongo import MongoClient
-except Exception:
-    MongoClient = None
-
-from mongo_env import get_mongo_uri, get_mongo_db, get_setting
-
-
-@st.cache_resource(show_spinner=False)
-def _get_collection(uri: str, db_name: str, col_name: str):
-    if MongoClient is None:
-        return None
-
-    client = MongoClient(uri, serverSelectionTimeoutMS=5000)
-    try:
-        client.admin.command("ping")
-    except Exception:
-        return None
-
-    col = client[db_name][col_name]
-
-    try:
-        col.create_index([("created_at", -1)])
-        col.create_index([("tags", 1)])
-    except Exception:
-        pass
-
-    return col
+from mongo_env import get_mongo_uri, get_mongo_db, get_setting, get_collection as _mongo_get_collection
 
 
 def run():
@@ -49,7 +22,13 @@ def run():
     db_name = get_mongo_db("dlc")
     col_name = get_setting("TIPS_COLLECTION", default="tips") or "tips"
 
-    col = _get_collection(uri, db_name, col_name)
+    col = _mongo_get_collection(db_name, "tips", col_key="TIPS_COLLECTION")
+    if col is not None:
+        try:
+            col.create_index([("created_at", -1)])
+            col.create_index([("tags", 1)])
+        except Exception:
+            pass
     if col is None:
         st.error("DB 연결에 실패했습니다.")
         st.info("MONGODB_URI / 네트워크 접근 설정을 확인하세요.")
