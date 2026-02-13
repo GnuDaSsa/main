@@ -1,303 +1,355 @@
-import streamlit as st
+﻿import base64
 import importlib.util
 import os
+import textwrap
+
+import streamlit as st
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
-def load_and_run_page(file_name):
+
+def load_and_run_page(file_name: str) -> None:
     file_path = os.path.join(BASE_DIR, file_name)
     try:
         module_name = os.path.splitext(file_name)[0]
         spec = importlib.util.spec_from_file_location(module_name, file_path)
-        if spec is None:
-            st.error(f"'{file_name}'에 대한 모듈 스펙을 찾을 수 없습니다.")
+        if spec is None or spec.loader is None:
+            st.error(f"'{file_name}' module spec not found.")
             return
         module = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(module)
         if hasattr(module, "run"):
             module.run()
         else:
-            st.error(f"'{file_name}'에 'run()' 함수가 정의되어 있지 않습니다.")
+            st.error(f"'{file_name}' does not define run().")
     except FileNotFoundError:
-        st.error(f"페이지 파일을 찾을 수 없습니다: {file_path}")
+        st.error(f"Page file not found: {file_path}")
     except Exception as e:
-        st.error(f"'{file_name}' 모듈을 불러오는 중 오류 발생: {e}")
+        st.error(f"Error loading '{file_name}': {e}")
+
+
+def image_to_data_uri(image_path: str) -> str | None:
+    if not os.path.exists(image_path):
+        return None
+    ext = os.path.splitext(image_path)[1].lower()
+    mime = "image/png" if ext == ".png" else "image/jpeg"
+    with open(image_path, "rb") as f:
+        encoded = base64.b64encode(f.read()).decode("ascii")
+    return f"data:{mime};base64,{encoded}"
+
 
 st.set_page_config(page_title="GnuDaS_GPT_World", layout="wide")
+background_image_path = os.path.join(BASE_DIR, "..", "monitor_image.png")
+if not os.path.exists(background_image_path):
+    background_image_path = os.path.join(BASE_DIR, "assets", "flash_banner.png")
+flash_data_uri = image_to_data_uri(background_image_path)
 
 st.markdown(
-    """
-    <style>
-    /* 전체 배경과 글자색: 라이트/다크 모두에서 가시성 확보 */
-    body, .stApp {
-        background: #f4f6fb !important;
-        color: #222222 !important;
-    }
-    @media (prefers-color-scheme: dark) {
-        body, .stApp {
-            background: #23272f !important;
-            color: #f4f6fb !important;
-        }
-        .main-card {
-            background: #2d3140 !important;
-            border: 2.5px solid #444 !important;
-        }
-        input[type="text"] {
-            background-color: #23272f !important;
-            border: 2px solid #7a5cff !important;
-            color: #f4f6fb !important;
-        }
-        input[type="text"]::placeholder {
-            color: #bbaaff !important;
-        }
-        section[data-testid="stFileUploaderDropzone"] {
-            background-color: #23272f !important;
-            border: 2px dashed #7a5cff !important;
-        }
-        section[data-testid="stFileUploaderDropzone"]:hover {
-            border-color: #4b2cff !important;
-            background-color: #2d3140 !important;
-        }
-    }
-    .main-card-row {
-        display: flex;
-        flex-direction: row;
-        justify-content: flex-start;
-        align-items: stretch;
-        margin-top: 3.5rem;
-        margin-bottom: 2.5rem;
-        margin-left: 6vw;
-        margin-right: 0;
-        min-height: 700px;
-        position: relative;
-        z-index: 1;
-    }
-    .main-card {
-        flex: 0 0 auto;
-        max-width: 750px;
-        min-width: 470px;
-        background: #fff !important;
-        border-radius: 22px;
-        border: 2.5px solid #e0e0e0 !important;
-        box-shadow: 0 8px 36px 0 #00000022, 0 2px 12px #00000033;
-        padding: 2.7rem 2.7rem 2.2rem 2.7rem;
-        margin: 0 0.5vw;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        position: relative;
-        z-index: 2;
-    }
-    input[type="text"] {
-        background-color: #fff !important;
-        border: 2px solid #7a5cff !important;
-        color: #222 !important;
-        font-weight: bold !important;
-        border-radius: 8px !important;
-        padding: 0.5em 0.8em !important;
-        box-shadow: 0 2px 8px #00000033 !important;
-    }
-    input[type="text"]::placeholder {
-        color: #7a5cff !important;
-        opacity: 1 !important;
-        font-weight: bold !important;
-    }
-    section[data-testid="stFileUploaderDropzone"] {
-        background-color: #fff !important;
-        border: 2px dashed #7a5cff !important;
-        border-radius: 10px !important;
-        box-shadow: 0 2px 8px #00000033 !important;
-    }
-    section[data-testid="stFileUploaderDropzone"]:hover {
-        border-color: #4b2cff !important;
-        background-color: #f4f6fb !important;
-    }
-    .main-divider {
-        width: 80px;
-        height: 10px;
-        background: linear-gradient(90deg, #9D5CFF 10%, #5CFFD1 90%);
-        border-radius: 5px;
-        margin: 1.5rem auto 1.5rem auto;
-        opacity: 0.85;
-        background-size: 200% 100%;
-        background-position: 0% 0%;
-        animation: gradient-move 3s ease-in-out infinite alternate;
-        box-shadow: 0 2px 12px #bbaaff44;
-    }
-    @keyframes gradient-move {
-        0% { background-position: 0% 0%; }
-        100% { background-position: 100% 0%; }
-    }
-    @keyframes spin {
-        from { transform: rotate(0deg); }
-        to { transform: rotate(360deg); }
-    }
-    @keyframes orbit {
-        0% { transform: translate(15px, -10px) scale(0.95); }
-        50% { transform: translate(-10px, 15px) scale(1.05); }
-        100% { transform: translate(15px, -10px) scale(0.95); }
-    }
-    .orbital-container {
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        width: 220px;
-        height: 220px;
-        position: relative;
-        margin: 2.2rem auto 1.5rem auto;
-        animation: spin 25s linear infinite;
-        filter: drop-shadow(0 6px 24px #00000055);
-    }
-    .orbital-shape {
-        position: absolute;
-        border-radius: 50%;
-        filter: blur(10px);
-        opacity: 0.7;
-    }
-    .shape1 {
-        width: 130px;
-        height: 130px;
-        background: radial-gradient(circle, #D0A2F7, #9D5CFF);
-        animation: orbit 12s ease-in-out infinite;
-    }
-    .shape2 {
-        width: 110px;
-        height: 110px;
-        background: radial-gradient(circle, #A2D2FF, #5C9DFF);
-        animation: orbit 10s ease-in-out infinite reverse;
-    }
-    .shape3 {
-        width: 90px;
-        height: 90px;
-        background: radial-gradient(circle, #A2FFE4, #5CFFD1);
-        animation: orbit 8s ease-in-out infinite;
-    }
-    .main-title {
-        text-align: center;
-        font-size: 2.8rem;
-        font-weight: 800;
-        margin-bottom: 0.3rem;
-        margin-top: 0.2rem;
-        letter-spacing: -1px;
-        background: linear-gradient(90deg, #9D5CFF 10%, #5CFFD1 90%);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        background-clip: text;
-    }
-    .main-sub {
-        text-align: center;
-        font-size: 1.25rem;
-        color: #7a5cff;
-        font-weight: 600;
-        margin-bottom: 0.2rem;
-        letter-spacing: 0.5px;
-        text-shadow: 0 2px 8px #e6e6ff55;
-    }
-    .main-lab {
-        text-align: center;
-        font-size: 1.08rem;
-        color: #555;
-        font-weight: 500;
-        margin-bottom: 1.2rem;
-        letter-spacing: 0.2px;
-    }
-    .main-desc {
-        text-align: center;
-        font-size: 1.08rem;
-        color: #666;
-        margin-bottom: 0.7rem;
-        font-weight: 400;
-    }
-    .main-quote {
-        text-align: center;
-        font-size: 1.05rem;
-        color: #888;
-        font-style: italic;
-        margin-bottom: 2.2rem;
-        letter-spacing: 0.2px;
-        text-shadow: 0 1px 6px #00000033;
-    }
-    .sidebar-section-title {
-        font-size: 1.05rem;
-        font-weight: 700;
-        color: #7a5cff;
-        margin-bottom: 0.7em;
-        margin-top: 0.2em;
-        letter-spacing: 1px;
-        text-align: left;
-    }
-    .sidebar-divider {
-        border-top: 1px solid #e0e0e0;
-        margin: 1.2em 0 0.8em 0;
-    }
-    div[data-testid="stSidebarUserContent"] { padding: 1rem; }
-    </style>
-    """,
-    unsafe_allow_html=True
+    textwrap.dedent(
+        """
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700;800&family=Noto+Sans+KR:wght@500;700;800&display=swap');
+:root { --text-main:#eef4ff; --text-sub:#d5def3; --panel:rgba(8,10,34,0.42); --panel-border:rgba(125,187,255,0.42); }
+.stApp {
+  color: var(--text-main);
+  background: transparent;
+}
+.stApp, .stApp button, .stApp input, .stApp textarea {
+  font-family: "Space Grotesk", "Noto Sans KR", sans-serif !important;
+}
+.global-flash-overlay {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  overflow: hidden;
+}
+.global-flash-overlay::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at 22% 20%, rgba(117, 232, 255, 0.22), transparent 38%),
+    radial-gradient(circle at 80% 14%, rgba(255, 119, 230, 0.2), transparent 34%),
+    linear-gradient(180deg, rgba(12, 18, 62, 0.78), rgba(7, 8, 22, 0.90));
+  z-index: 2;
+}
+.global-flash-overlay img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 1.00;
+  transform: scale(1);
+  filter: saturate(1.22) contrast(1.05) brightness(1.5);
+}
+section[data-testid="stSidebar"],
+div[data-testid="stAppViewContainer"] > .main,
+div[data-testid="stAppViewContainer"] > .main > div {
+  position: relative;
+  z-index: 2;
+}
+section[data-testid="stSidebar"] button {
+  font-size: calc(0.92rem + 2pt) !important;
+  font-weight: 700 !important;
+}
+.sidebar-section-title { font-size:calc(1.02rem + 2pt); font-weight:700; color:#8db9ff; margin-bottom:.7em; margin-top:.2em; letter-spacing:1px; text-align:left; }
+.sidebar-divider { border-top:1px solid #2d3e67; margin:1.2em 0 .8em 0; }
+div[data-testid="stSidebarUserContent"] { padding:1rem; }
+
+.landing-shell { max-width:1260px; margin:2rem auto 1rem auto; padding:0 1rem; }
+.top-banner {
+  position: relative;
+  width: 100%;
+  min-height: 160px;
+  border-radius: 20px;
+  border: 1px solid rgba(133, 209, 255, .56);
+  background: linear-gradient(90deg, rgba(9, 25, 82, .92), rgba(55, 21, 105, .94));
+  box-shadow: 0 16px 46px rgba(0,0,0,.38), inset 0 0 0 1px rgba(255,255,255,.08);
+  padding: 1rem 1.2rem;
+  margin-bottom: 1rem;
+  overflow: hidden;
+}
+.top-banner-image {
+  display: none;
+}
+.top-banner-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, rgba(7,12,34,.68), rgba(19,12,52,.62));
+}
+.top-banner-content {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  gap: .36rem;
+}
+.top-banner-label {
+  color: #7bd6ff;
+  font-size: calc(.84rem + 2pt);
+  font-weight: 700;
+  letter-spacing: .18em;
+  text-transform: uppercase;
+}
+.top-banner-date {
+  color: #bfd8ff;
+  font-size: calc(.74rem + 2pt);
+  font-weight: 700;
+  letter-spacing: .06em;
+}
+.top-banner-name {
+  margin-top: .04rem;
+  color: #f8fbff;
+  font-size: clamp(1.55rem, 2.9vw, 2.55rem);
+  font-weight: 900;
+  letter-spacing: .02em;
+  text-shadow: 0 0 16px rgba(103,229,255,.38), 0 0 34px rgba(180,123,255,.32);
+}
+.top-banner-sub {
+  margin-top: .1rem;
+  color: #d6e8ff;
+  font-size: calc(.95rem + 2pt);
+  font-weight: 700;
+  letter-spacing: .03em;
+}
+.top-banner-meta {
+  margin-top: .2rem;
+  display: flex;
+  gap: .6rem;
+  flex-wrap: wrap;
+}
+.meta-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: .34rem .74rem;
+  border-radius: 999px;
+  border: 1px solid rgba(130, 207, 255, .58);
+  background: rgba(8, 20, 50, .64);
+  color: #f2f8ff;
+  font-size: calc(.84rem + 2pt);
+  font-weight: 800;
+}
+.top-banner-trace {
+  margin-top: .28rem;
+  height: 2px;
+  width: min(580px, 95%);
+  background: linear-gradient(90deg, rgba(122, 223, 255, .95), rgba(194, 118, 255, .78));
+  box-shadow: 0 0 18px rgba(122, 223, 255, .52);
+  border-radius: 2px;
+}
+.landing-grid { display:block; }
+.info-panel { border-radius:24px; border:1px solid var(--panel-border); background:var(--panel); box-shadow:0 18px 64px rgba(0,0,0,.45), inset 0 0 0 1px rgba(255,255,255,.04); overflow:hidden; min-height:auto; padding:1.45rem 1.5rem 1.2rem; display:flex; flex-direction:column; gap:.8rem; }
+.hub-grid { display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:.85rem; margin-top:.15rem; }
+.info-title { margin:0; font-size:calc(1.3rem + 2pt); font-weight:900; color:#f3f7ff; }
+.info-desc { margin:0; color:var(--text-sub); line-height:1.6; font-size:calc(1.05rem + 2pt); }
+.chip-wrap { display:flex; flex-wrap:wrap; gap:.45rem; }
+.chip {
+  padding:.5rem .85rem; border-radius:999px; border:1px solid rgba(150,197,255,.42);
+  background:rgba(12,26,62,.56); color:#e6efff; font-size:calc(.94rem + 2pt); font-weight:700; letter-spacing:.02em;
+}
+.activity-card {
+  border-radius:14px; border:1px solid rgba(165,201,255,.33);
+  background:linear-gradient(180deg, rgba(17,28,65,.48), rgba(11,18,45,.56)); padding:.86rem;
+}
+.activity-title {
+  margin: 0 0 .55rem !important;
+  color: #f7fbff !important;
+  font-size: calc(1.25rem + 2pt) !important;
+  font-weight: 800 !important;
+  line-height: 1.3 !important;
+}
+.activity-line {
+  margin: .34rem 0 !important;
+  color: #c4d4f3 !important;
+  font-size: calc(1.14rem + 2pt) !important;
+  line-height: 1.52 !important;
+  font-weight: 600 !important;
+}
+.cta-note {
+  margin-top:.2rem; border-radius:12px; border:1px solid rgba(103,229,255,.4);
+  background:linear-gradient(90deg, rgba(10,30,67,.58), rgba(27,20,74,.52));
+  color:#dbedff; font-size:calc(.92rem + 2pt); font-weight:700; padding:.78rem .9rem;
+}
+@media (max-width:980px) {
+  .hub-grid { grid-template-columns:1fr; }
+  .top-banner { min-height: 180px; }
+}
+</style>
+        """
+    ),
+    unsafe_allow_html=True,
 )
 
-# 페이지 상태 관리
-if 'page' not in st.session_state:
-    st.session_state.page = '홈'
+HOME = "\ud648"
+MBTI = "MBTI \uac80\uc0ac\uae30"
+TETO = "\ud14c\ud1a0\uc5d0\uac90 \ud14c\uc2a4\ud2b8"
+PDF = "PDF \uc77c\uad04 \ubcc0\ud658"
+CHECK = "\ub3c4\uae09\uc704\ud0c1\uc6a9\uc5ed \uc810\uac80\ud45c \uc0dd\uc131"
+PRESS = "\uc0dd\uc131\ud615 AI \ubcf4\ub3c4\uc790\ub8cc \uc0dd\uc131\uae30"
+WATER_DOC = "\uae09\uc218\uacf5\uc0ac \uacf5\ubb38 \uc790\ub3d9\ud654"
+WATER_REPORT = "\uc815\uc218\uae30 \uc2e0\uace0"
+
+if "page" not in st.session_state:
+    st.session_state.page = HOME
 
 with st.sidebar:
     st.markdown('<div class="sidebar-section-title">common</div>', unsafe_allow_html=True)
-    if st.button("🏠 홈", use_container_width=True):
-        st.session_state.page = '홈'
-    if st.button("🧑‍🤝‍🧑 MBTI 검사기", use_container_width=True):
-        st.session_state.page = 'MBTI 검사기'
-    if st.button("🎭 테토에겐 테스트", use_container_width=True):
-        st.session_state.page = '테토에겐 테스트'
-    if st.button("📄 한글 ➡️ PDF 일괄변환", use_container_width=True):
-        st.session_state.page = 'PDF 일괄 변환'
-    if st.button("📋 도급위탁용역 점검표 생성", use_container_width=True):
-        st.session_state.page = '도급위탁용역 점검표 생성'
-    if st.button("📰 생성형 AI 보도자료 생성기", use_container_width=True):
-        st.session_state.page = '생성형 AI 보도자료 생성기'
+    if st.button(HOME, use_container_width=True):
+        st.session_state.page = HOME
+    if st.button(MBTI, use_container_width=True):
+        st.session_state.page = MBTI
+    if st.button(TETO, use_container_width=True):
+        st.session_state.page = TETO
+    if st.button(PDF, use_container_width=True):
+        st.session_state.page = PDF
+    if st.button(CHECK, use_container_width=True):
+        st.session_state.page = CHECK
+    if st.button(PRESS, use_container_width=True):
+        st.session_state.page = PRESS
+
     st.markdown('<div class="sidebar-divider"></div>', unsafe_allow_html=True)
     st.markdown('<div class="sidebar-section-title">custom</div>', unsafe_allow_html=True)
-    with st.expander("💧 수도시설과", expanded=(st.session_state.get('page') in ["급수공사 공문 자동화", "정수기 신고"])):
-        if st.button("└ 급수공사 공문 자동화", use_container_width=True):
-            st.session_state.page = '급수공사 공문 자동화'
-        if st.button("└ 정수기 신고", use_container_width=True):
-            st.session_state.page = '정수기 신고'
+    with st.expander("\uc218\ub3c4\uc2dc\uc124\uacfc", expanded=(st.session_state.get("page") in [WATER_DOC, WATER_REPORT])):
+        if st.button("\u2514 " + WATER_DOC, use_container_width=True):
+            st.session_state.page = WATER_DOC
+        if st.button("\u2514 " + WATER_REPORT, use_container_width=True):
+            st.session_state.page = WATER_REPORT
+
+if flash_data_uri:
+    st.markdown(
+        (
+            '<div class="global-flash-overlay">'
+            f'<img src="{flash_data_uri}" alt="flash overlay" />'
+            "</div>"
+        ),
+        unsafe_allow_html=True,
+    )
 
 page_to_run_map = {
-    '홈': None,
-    'MBTI 검사기': 'page6.py',
-    '테토에겐 테스트': 'page7.py',
-    '급수공사 공문 자동화': 'page1.py',
-    '정수기 신고': 'page2.py',
-    'PDF 일괄 변환': 'page3.py',
-    '도급위탁용역 점검표 생성': 'page4.py',
-    '생성형 AI 보도자료 생성기': 'page5.py',
+    HOME: None,
+    MBTI: "page6.py",
+    TETO: "page7.py",
+    WATER_DOC: "page1.py",
+    WATER_REPORT: "page2.py",
+    PDF: "page3.py",
+    CHECK: "page4.py",
+    PRESS: "page5.py",
 }
+
 page_file = page_to_run_map.get(st.session_state.page)
 
 if page_file:
     load_and_run_page(page_file)
 else:
-    st.markdown("""
-        <div class="main-card-row">
-            <div class="main-card">
-                <div class="orbital-container">
-                    <div class="orbital-shape shape1"></div>
-                    <div class="orbital-shape shape2"></div>
-                    <div class="orbital-shape shape3"></div>
-                </div>
-                <div class="main-title">성남시 AIpha매일</div>
-                <div class="main-sub">(AI를 매일 파는 사람들)</div>
-                <div class="main-lab">지누다스(GnuDaS)의 AI연구실</div>
-                <div class="main-divider"></div>
-                <div class="main-desc">
-                    반복 업무 자동화와 AI 도구를 제공합니다.<br>
-                    좌측 메뉴에서 원하는 기능을 선택하세요.
-                </div>
-                <div class="main-quote">
-                    Empowering your daily work with smart automation.<br>
-                    <span style="font-size:0.98rem;">Innovation starts here, with GnuDaS AI Lab.</span>
-                </div>
-            </div>
-        </div>
-    """, unsafe_allow_html=True)
+    if flash_data_uri:
+        top_banner_html = (
+            '<div class="top-banner">'
+            '<div class="top-banner-overlay"></div>'
+            '<div class="top-banner-content">'
+            '<div class="top-banner-label">AI CLUB</div>'
+            '<div class="top-banner-date">Updated 2026-02-13</div>'
+            '<div class="top-banner-name">Deep Learning Crew</div>'
+            '<div class="top-banner-meta">'
+            '<span class="meta-badge">\ud68c\uc7a5 \uc0ac\uc9c4\uc6b0</span>'
+            '<span class="meta-badge">\ucd1d\ubb34 \uae40\ub3d9\uc8fc</span>'
+            "</div>"
+            '<div class="top-banner-trace"></div>'
+            "</div>"
+            "</div>"
+        )
+    else:
+        top_banner_html = (
+            '<div class="top-banner">'
+            '<div class="top-banner-content">'
+            '<div class="top-banner-label">AI CLUB</div>'
+            '<div class="top-banner-date">Updated 2026-02-13</div>'
+            '<div class="top-banner-name">Deep Learning Crew</div>'
+            '<div class="top-banner-meta">'
+            '<span class="meta-badge">\ud68c\uc7a5 \uc0ac\uc9c4\uc6b0</span>'
+            '<span class="meta-badge">\ucd1d\ubb34 \uae40\ub3d9\uc8fc</span>'
+            "</div>"
+            '<div class="top-banner-trace"></div>'
+            "</div>"
+            "</div>"
+        )
+
+    st.markdown(
+        (
+            '<div class="landing-shell">'
+            f"{top_banner_html}"
+            '<div class="landing-grid">'
+            '<section class="info-panel">'
+            '<h2 class="info-title">Main Hub</h2>'
+            '<div class="chip-wrap">'
+            '<span class="chip">AUTOMATION</span>'
+            '<span class="chip">INNOVATION</span>'
+            '<span class="chip">CODING</span>'
+            '<span class="chip">CONTENT</span>'
+            '<span class="chip">COMPETITION</span>'
+            "</div>"
+            '<div class="hub-grid">'
+            '<div class="activity-card">'
+            '<p class="activity-title">\ud65c\ub3d9\ub0b4\uc6a9 - Passive</p>'
+            '<p class="activity-line">\uc790\ub8cc\uacf5\uc720</p>'
+            '<p class="activity-line">\uc544\uc774\ub514\uc5b4 \uc81c\uc548 \ubc0f \uace0\ub3c4\ud654</p>'
+            '<p class="activity-line">\uc5c5\ubb34\ud65c\uc6a9\uc0ac\ub840 \uc9c8\uc758\uc751\ub2f5</p>'
+            '<p class="activity-line">\uce74\ud1a1\ubc29 \uc6b4\uc601</p>'
+            "</div>"
+            '<div class="activity-card">'
+            '<p class="activity-title">\ud65c\ub3d9\ub0b4\uc6a9 - Active</p>'
+            '<p class="activity-line">\ubc18\uae30 1\ud68c \uc624\ud504\ub77c\uc778 \ubaa8\uc784</p>'
+            '<p class="activity-line">\uc544\uc774\ub514\uc5b4\ud68c\uc758</p>'
+            "</div>"
+            "</div>"
+            '<div class="activity-card">'
+            '<p class="activity-title">\uc774\ubc88 \ubd84\uae30 \ubaa9\ud45c</p>'
+            '<p class="activity-line">\ub098\ub9cc\uc758 AI\ucee8\ud150\uce20 \ub9cc\ub4e4\uae30</p>'
+            "</div>"
+            '<div class="cta-note">\uc88c\uce21 \ud0ed\uc5d0\uc11c \uae30\ub2a5\uc744 \uc120\ud0dd\ud558\uc5ec \ud65c\uc6a9\ud558\uc138\uc694.</div>'
+            "</section>"
+            "</div>"
+            "</div>"
+        ),
+        unsafe_allow_html=True,
+    )
 
