@@ -1,12 +1,53 @@
 import base64
+import io
 from datetime import datetime, timezone
 
+from PIL import Image
 import streamlit as st
 
 from mongo_env import get_mongo_uri, get_mongo_db, get_setting, get_collection as _mongo_get_collection
 
-MAX_IMAGE_MB = 2
+MAX_IMAGE_MB = 10
 MAX_IMAGE_BYTES = MAX_IMAGE_MB * 1024 * 1024
+TARGET_B64_BYTES = 12 * 1024 * 1024  # Base64 결과 12MB 이하 (MongoDB 16MB 문서 여유)
+MAX_DIMENSION = 1920
+
+
+def _compress_image(file_bytes: bytes, filename: str) -> str | None:
+    """이미지를 리사이즈/압축하여 data URI로 반환."""
+    try:
+        img = Image.open(io.BytesIO(file_bytes))
+    except Exception:
+        return None
+
+    # RGBA → RGB (JPEG 저장용)
+    if img.mode in ("RGBA", "P"):
+        img = img.convert("RGB")
+
+    # 큰 이미지 리사이즈
+    w, h = img.size
+    if max(w, h) > MAX_DIMENSION:
+        ratio = MAX_DIMENSION / max(w, h)
+        img = img.resize((int(w * ratio), int(h * ratio)), Image.LANCZOS)
+
+    # 품질을 낮춰가며 목표 크기에 맞춤
+    for quality in (85, 70, 50, 30):
+        buf = io.BytesIO()
+        img.save(buf, format="JPEG", quality=quality, optimize=True)
+        b64 = base64.b64encode(buf.getvalue()).decode("utf-8")
+        if len(b64) <= TARGET_B64_BYTES:
+            return f"data:image/jpeg;base64,{b64}"
+
+    # 최소 품질로도 크면 추가 리사이즈
+    for scale in (0.5, 0.25):
+        small = img.resize((int(img.width * scale), int(img.height * scale)), Image.LANCZOS)
+        buf = io.BytesIO()
+        small.save(buf, format="JPEG", quality=30, optimize=True)
+        b64 = base64.b64encode(buf.getvalue()).decode("utf-8")
+        if len(b64) <= TARGET_B64_BYTES:
+            return f"data:image/jpeg;base64,{b64}"
+
+    return None
 
 
 def _check_admin() -> bool:
@@ -98,25 +139,20 @@ def run():
                         "created_at": datetime.now(timezone.utc),
                     }
 
+                    img_ok = True
                     if image_file is not None:
                         if image_file.size > MAX_IMAGE_BYTES:
                             st.error(f"이미지 크기가 {MAX_IMAGE_MB}MB를 초과합니다.")
+                            img_ok = False
                         else:
-                            img_bytes = image_file.read()
-                            img_b64 = base64.b64encode(img_bytes).decode("utf-8")
-                            ext = image_file.name.rsplit(".", 1)[-1].lower()
-                            mime = {
-                                "png": "image/png",
-                                "jpg": "image/jpeg",
-                                "jpeg": "image/jpeg",
-                                "gif": "image/gif",
-                                "webp": "image/webp",
-                            }.get(ext, "image/png")
-                            doc["image"] = f"data:{mime};base64,{img_b64}"
+                            data_uri = _compress_image(image_file.read(), image_file.name)
+                            if data_uri:
+                                doc["image"] = data_uri
+                            else:
+                                st.error("이미지 처리에 실패했습니다.")
+                                img_ok = False
 
-                    if "image" not in doc and image_file is not None and image_file.size > MAX_IMAGE_BYTES:
-                        pass  # skip insert if image too large
-                    else:
+                    if img_ok:
                         col.insert_one(doc)
                         st.success("등록 완료")
 
@@ -157,10 +193,20 @@ def run():
 
             # Admin can delete
             if is_admin:
-                if st.button("삭제", key=f"del_{d['_id']}", type="secondary"):
-                    col.delete_one({"_id": d["_id"]})
-                    st.success("삭제 완료")
-                    st.rerun()
+                doc_id = str(d["_id"])
+                if st.button("삭제", key=f"del_{doc_id}", type="secondary"):
+                    st.session_state[f"confirm_del_{doc_id}"] = True
+                if st.session_state.get(f"confirm_del_{doc_id}", False):
+                    st.warning("정말 삭제하시겠습니까?")
+                    c1, c2 = st.columns(2)
+                    if c1.button("예, 삭제", key=f"yes_{doc_id}", type="primary"):
+                        col.delete_one({"_id": d["_id"]})
+                        st.session_state.pop(f"confirm_del_{doc_id}", None)
+                        st.success("삭제 완료")
+                        st.rerun()
+                    if c2.button("취소", key=f"no_{doc_id}"):
+                        st.session_state.pop(f"confirm_del_{doc_id}", None)
+                        st.rerun()
 
 
 if __name__ == "__main__":
