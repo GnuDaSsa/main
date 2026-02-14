@@ -229,6 +229,7 @@ TETO = "테토에겐 테스트"
 CHECK = "도급위탁용역 점검표 생성"
 PRESS = "생성형 AI 보도자료 생성기"
 TIPS = "AI 꿀팁 공유"
+LAW = "AI 법률 검색"
 
 if "page" not in st.session_state:
     st.session_state.page = HOME
@@ -245,6 +246,8 @@ with st.sidebar:
         st.session_state.page = CHECK
     if st.button(PRESS, use_container_width=True):
         st.session_state.page = PRESS
+    if st.button(LAW, use_container_width=True):
+        st.session_state.page = LAW
 
     st.markdown('<div class="sidebar-divider"></div>', unsafe_allow_html=True)
     st.markdown('<div class="sidebar-section-title">Community</div>', unsafe_allow_html=True)
@@ -268,6 +271,7 @@ page_to_run_map = {
     CHECK: "page4.py",
     PRESS: "page5.py",
     TIPS: "page8.py",
+    LAW: "page9.py",
 }
 
 if st.session_state.page not in page_to_run_map:
