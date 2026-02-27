@@ -14,6 +14,7 @@ STATUS_COLORS = {
 CONTENT_MIN = 10
 CONTENT_MAX = 500
 TITLE_MAX = 100
+NICKNAME_MAX = 30
 
 
 def _check_admin() -> bool:
@@ -25,7 +26,7 @@ def _check_admin() -> bool:
 
 def run():
     st.title("💡 아이디어 제안소")
-    st.caption("클럽 활동에 대한 아이디어를 자유롭게 제안해주세요. 누구나 작성할 수 있습니다.")
+    st.caption("클럽 활동에 대한 아이디어를 자유롭게 제안해주세요.")
 
     uri = get_mongo_uri()
     if not uri:
@@ -45,10 +46,39 @@ def run():
     try:
         col.create_index([("created_at", -1)])
         col.create_index([("status", 1)])
+        col.create_index([("nickname", 1)])
     except Exception:
         pass
 
-    # ── 제안 폼 (누구나) ──────────────────────────────────────────
+    # ── 닉네임 설정 ───────────────────────────────────────────────
+    nickname = st.session_state.get("idea_nickname", "")
+
+    if not nickname:
+        st.info("이름(닉네임)을 입력하면 내가 제안한 아이디어를 확인하고 삭제할 수 있어요.")
+        with st.form("nickname_form", clear_on_submit=False):
+            name_input = st.text_input(
+                "이름 / 닉네임",
+                placeholder="예: 사진우",
+                max_chars=NICKNAME_MAX,
+            )
+            name_submitted = st.form_submit_button("설정하기", type="primary")
+        if name_submitted:
+            name_input = name_input.strip()
+            if name_input:
+                st.session_state.idea_nickname = name_input
+                st.rerun()
+            else:
+                st.warning("이름을 입력해주세요.")
+        st.divider()
+    else:
+        col_a, col_b = st.columns([5, 1])
+        col_a.markdown(f"**👤 {nickname}** 님으로 활동 중")
+        if col_b.button("변경", key="change_nickname"):
+            st.session_state.idea_nickname = ""
+            st.rerun()
+        st.divider()
+
+    # ── 제안 폼 ───────────────────────────────────────────────────
     st.subheader("새 아이디어 제안하기")
     with st.form("idea_form", clear_on_submit=True):
         title = st.text_input(
@@ -75,18 +105,56 @@ def run():
             doc = {
                 "title": title.strip() or None,
                 "content": content_stripped,
+                "nickname": nickname or "익명",
                 "created_at": datetime.now(timezone.utc),
                 "status": "제안됨",
             }
             try:
                 col.insert_one(doc)
                 st.success("제안이 등록되었습니다! 감사합니다. 🎉")
+                st.rerun()
             except Exception:
                 st.error("저장 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.")
 
     st.divider()
 
-    # ── 채택된 아이디어 공개 (일반 사용자) ───────────────────────
+    # ── 내 제안 목록 ──────────────────────────────────────────────
+    if nickname:
+        my_docs = list(col.find({"nickname": nickname}).sort("created_at", -1).limit(50))
+        st.subheader(f"📋 내 제안 ({len(my_docs)})")
+
+        if not my_docs:
+            st.info("아직 제안한 아이디어가 없어요. 위에서 첫 아이디어를 남겨보세요!")
+        else:
+            for d in my_docs:
+                doc_id = str(d["_id"])
+                current_status = d.get("status", "제안됨")
+                badge = STATUS_COLORS.get(current_status, "⚪")
+                label = d.get("title") or (d.get("content", "")[:30] + "…")
+                created = d["created_at"].strftime("%Y-%m-%d %H:%M") if d.get("created_at") else "-"
+
+                with st.expander(f"{badge} {label}", expanded=False):
+                    st.caption(f"상태: {current_status}  |  등록일: {created}")
+                    st.write(d.get("content", ""))
+
+                    if st.button("🗑️ 삭제", key=f"my_del_{doc_id}", type="secondary"):
+                        st.session_state[f"my_confirm_{doc_id}"] = True
+
+                    if st.session_state.get(f"my_confirm_{doc_id}", False):
+                        st.warning("정말 삭제하시겠습니까?")
+                        c1, c2 = st.columns(2)
+                        if c1.button("예, 삭제", key=f"my_yes_{doc_id}", type="primary"):
+                            col.delete_one({"_id": d["_id"]})
+                            st.session_state.pop(f"my_confirm_{doc_id}", None)
+                            st.success("삭제되었습니다.")
+                            st.rerun()
+                        if c2.button("취소", key=f"my_no_{doc_id}"):
+                            st.session_state.pop(f"my_confirm_{doc_id}", None)
+                            st.rerun()
+
+        st.divider()
+
+    # ── 채택된 아이디어 공개 ──────────────────────────────────────
     adopted = list(col.find({"status": "채택"}).sort("created_at", -1).limit(20))
     if adopted:
         st.subheader(f"🟢 채택된 아이디어 ({len(adopted)})")
@@ -94,9 +162,11 @@ def run():
             label = d.get("title") or (d.get("content", "")[:30] + "…")
             with st.expander(label, expanded=False):
                 st.write(d.get("content", ""))
-                st.caption(f"등록일: {d['created_at'].strftime('%Y-%m-%d') if d.get('created_at') else '-'}")
+                who = d.get("nickname", "")
+                date = d["created_at"].strftime("%Y-%m-%d") if d.get("created_at") else "-"
+                st.caption(f"{who}  |  {date}")
 
-    # ── 관리자 영역 ──────────────────────────────────────────────
+    # ── 관리자 영역 ───────────────────────────────────────────────
     is_admin = _check_admin()
     admin_pw = get_setting("ADMIN_PASSWORD")
 
@@ -112,6 +182,7 @@ def run():
                     st.error("비밀번호가 틀렸습니다.")
 
     if is_admin:
+        st.divider()
         st.success("관리자 모드")
         if st.button("로그아웃", key="idea_admin_logout"):
             st.session_state.admin_authenticated = False
@@ -127,7 +198,6 @@ def run():
 
         query = {} if filter_status == "전체" else {"status": filter_status}
         docs = list(col.find(query).sort("created_at", -1).limit(200))
-
         st.caption(f"총 {len(docs)}건")
 
         if not docs:
@@ -138,10 +208,11 @@ def run():
                 current_status = d.get("status", "제안됨")
                 badge = STATUS_COLORS.get(current_status, "⚪")
                 label = d.get("title") or (d.get("content", "")[:30] + "…")
+                who = d.get("nickname", "익명")
                 created = d["created_at"].strftime("%Y-%m-%d %H:%M") if d.get("created_at") else "-"
 
-                with st.expander(f"{badge} {label}", expanded=False):
-                    st.caption(f"상태: {current_status}  |  등록일: {created}")
+                with st.expander(f"{badge} {label} — {who}", expanded=False):
+                    st.caption(f"상태: {current_status}  |  등록일: {created}  |  제안자: {who}")
                     st.write(d.get("content", ""))
 
                     col1, col2 = st.columns([3, 1])
