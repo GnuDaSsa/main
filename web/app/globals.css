@@ -1,0 +1,79 @@
+:root {
+  --bg: #f4f6ef;
+  --fg: #1f2b1a;
+  --card: #ffffff;
+  --accent: #2f6f4f;
+  --muted: #6f786c;
+  --border: #dde3d7;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: "Segoe UI", "Noto Sans KR", sans-serif;
+  background: radial-gradient(circle at 20% 10%, #f9fbf7, #edf2e7 52%, #e5ebde);
+  color: var(--fg);
+}
+
+.wrap {
+  max-width: 980px;
+  margin: 0 auto;
+  padding: 24px 16px 40px;
+}
+
+.panel {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 16px;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.input {
+  width: 100%;
+  border: 1px solid #cdd6c7;
+  border-radius: 10px;
+  padding: 10px 12px;
+}
+
+.btn {
+  border: 0;
+  border-radius: 12px;
+  background: var(--accent);
+  color: #fff;
+  padding: 11px 16px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.cards {
+  display: grid;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.card {
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 14px;
+}
+
+.muted {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+@media (max-width: 720px) {
+  .grid {
+    grid-template-columns: 1fr;
+  }
+}
