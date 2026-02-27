@@ -230,6 +230,7 @@ CHECK = "도급위탁용역 점검표 생성"
 PRESS = "생성형 AI 보도자료 생성기"
 TIPS = "AI 꿀팁 공유"
 LAW = "AI 법률 검색"
+IDEA = "아이디어 제안소"
 
 if "page" not in st.session_state:
     st.session_state.page = HOME
@@ -253,6 +254,8 @@ with st.sidebar:
     st.markdown('<div class="sidebar-section-title">Community</div>', unsafe_allow_html=True)
     if st.button(TIPS, use_container_width=True):
         st.session_state.page = TIPS
+    if st.button(IDEA, use_container_width=True):
+        st.session_state.page = IDEA
 
 if flash_data_uri:
     st.markdown(
@@ -272,6 +275,7 @@ page_to_run_map = {
     PRESS: "page5.py",
     TIPS: "page8.py",
     LAW: "page9.py",
+    IDEA: "page10.py",
 }
 
 if st.session_state.page not in page_to_run_map:
