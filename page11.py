@@ -124,6 +124,9 @@ def run():
     if convert_clicked:
         if uploaded_file is None:
             st.warning("오디오 파일을 먼저 업로드해주세요.")
+        elif len(uploaded_file.getvalue()) > 25 * 1024 * 1024:
+            size_mb = len(uploaded_file.getvalue()) / (1024 * 1024)
+            st.error(f"파일 크기가 {size_mb:.1f}MB로 25MB 제한을 초과합니다. 파일을 압축하거나 분할 후 다시 시도해주세요.")
         else:
             with st.spinner("변환 중..."):
                 transcription = client.audio.transcriptions.create(
