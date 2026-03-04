@@ -5,6 +5,31 @@ from openai import OpenAI
 from mongo_env import get_setting
 
 
+MAX_CHUNK = 24 * 1024 * 1024  # 24 MB
+
+
+def _transcribe(client, file_bytes: bytes, filename: str, mime_type: str, progress_cb=None) -> str:
+    if len(file_bytes) <= MAX_CHUNK:
+        result = client.audio.transcriptions.create(
+            model="whisper-1",
+            file=(filename, file_bytes, mime_type),
+            language="ko",
+        )
+        return result.text
+    chunks = [file_bytes[i:i + MAX_CHUNK] for i in range(0, len(file_bytes), MAX_CHUNK)]
+    texts = []
+    for i, chunk in enumerate(chunks):
+        if progress_cb:
+            progress_cb(i, len(chunks))
+        result = client.audio.transcriptions.create(
+            model="whisper-1",
+            file=(filename, chunk, mime_type),
+            language="ko",
+        )
+        texts.append(result.text)
+    return " ".join(texts)
+
+
 SYSTEM_PROMPT = """당신은 음성 녹음 내용을 분석하는 전문가입니다.
 
 먼저 텍스트를 보고 화자가 여럿인지 판단하세요.
@@ -98,7 +123,7 @@ def run():
         """,
         unsafe_allow_html=True,
     )
-    st.caption("음성 파일을 텍스트로 변환하고 핵심 내용을 자동으로 정리합니다. (최대 25MB)")
+    st.caption("음성 파일을 텍스트로 변환하고 핵심 내용을 자동으로 정리합니다. (최대 25MB, 초과 시 자동 분할)")
 
     api_key = get_setting("OPENAI_API_KEY")
     if not api_key:
@@ -124,17 +149,19 @@ def run():
     if convert_clicked:
         if uploaded_file is None:
             st.warning("오디오 파일을 먼저 업로드해주세요.")
-        elif len(uploaded_file.getvalue()) > 25 * 1024 * 1024:
-            size_mb = len(uploaded_file.getvalue()) / (1024 * 1024)
-            st.error(f"파일 크기가 {size_mb:.1f}MB로 25MB 제한을 초과합니다. 파일을 압축하거나 분할 후 다시 시도해주세요.")
         else:
             with st.spinner("변환 중..."):
-                transcription = client.audio.transcriptions.create(
-                    model="whisper-1",
-                    file=(uploaded_file.name, uploaded_file.getvalue(), uploaded_file.type),
-                    language="ko",
-                )
-                transcript_text = transcription.text
+                file_bytes = uploaded_file.getvalue()
+                total_chunks = max(1, -(-len(file_bytes) // MAX_CHUNK))
+                if total_chunks > 1:
+                    size_mb = len(file_bytes) / (1024 * 1024)
+                    chunk_status = st.empty()
+                    def progress_cb(i, total):
+                        chunk_status.info(f"청크 {i+1}/{total} 변환 중... ({size_mb:.1f}MB 파일 자동 분할)")
+                    transcript_text = _transcribe(client, file_bytes, uploaded_file.name, uploaded_file.type, progress_cb)
+                    chunk_status.empty()
+                else:
+                    transcript_text = _transcribe(client, file_bytes, uploaded_file.name, uploaded_file.type)
 
             with st.spinner("요약 중..."):
                 summary_response = client.chat.completions.create(
