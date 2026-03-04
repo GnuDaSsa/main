@@ -1,11 +1,29 @@
+import io
+
 import streamlit as st
 from dotenv import load_dotenv
 from openai import OpenAI
+from pydub import AudioSegment
 
 from mongo_env import get_setting
 
 
-MAX_CHUNK = 24 * 1024 * 1024  # 24 MB
+CHUNK_MINUTES = 10  # 분할 단위 (분)
+MAX_CHUNK = 24 * 1024 * 1024  # 25MB 미만 기준
+
+
+def _split_audio(file_bytes: bytes, filename: str):
+    """pydub으로 오디오를 CHUNK_MINUTES 단위 청크로 분할, (bytes, ext) 리스트 반환."""
+    ext = filename.rsplit(".", 1)[-1].lower()
+    fmt = "mp4" if ext in ("m4a", "mp4") else ext
+    audio = AudioSegment.from_file(io.BytesIO(file_bytes), format=fmt)
+    chunk_ms = CHUNK_MINUTES * 60 * 1000
+    chunks = []
+    for start in range(0, len(audio), chunk_ms):
+        buf = io.BytesIO()
+        audio[start:start + chunk_ms].export(buf, format=fmt)
+        chunks.append((buf.getvalue(), fmt))
+    return chunks
 
 
 def _transcribe(client, file_bytes: bytes, filename: str, mime_type: str, progress_cb=None) -> str:
@@ -16,14 +34,15 @@ def _transcribe(client, file_bytes: bytes, filename: str, mime_type: str, progre
             language="ko",
         )
         return result.text
-    chunks = [file_bytes[i:i + MAX_CHUNK] for i in range(0, len(file_bytes), MAX_CHUNK)]
+
+    chunks = _split_audio(file_bytes, filename)
     texts = []
-    for i, chunk in enumerate(chunks):
+    for i, (chunk_bytes, fmt) in enumerate(chunks):
         if progress_cb:
             progress_cb(i, len(chunks))
         result = client.audio.transcriptions.create(
             model="whisper-1",
-            file=(filename, chunk, mime_type),
+            file=(f"chunk_{i}.{fmt}", chunk_bytes, mime_type),
             language="ko",
         )
         texts.append(result.text)
@@ -157,7 +176,7 @@ def run():
                     size_mb = len(file_bytes) / (1024 * 1024)
                     chunk_status = st.empty()
                     def progress_cb(i, total):
-                        chunk_status.info(f"청크 {i+1}/{total} 변환 중... ({size_mb:.1f}MB 파일 자동 분할)")
+                        chunk_status.info(f'청크 {i+1}/{total} 변환 중... ({size_mb:.1f}MB 파일 자동 분할)')
                     transcript_text = _transcribe(client, file_bytes, uploaded_file.name, uploaded_file.type, progress_cb)
                     chunk_status.empty()
                 else:
