@@ -6,17 +6,23 @@ from mongo_env import get_setting
 
 
 SYSTEM_PROMPT = """당신은 음성 녹음 내용을 분석하는 전문가입니다.
-변환된 텍스트를 분석하여 다음 형식으로 정리하세요:
+
+먼저 텍스트를 보고 화자가 여럿인지 판단하세요.
+화자 감지 기준: 질문-답변 패턴, 대화체 문장 교차, '~라고 했다/말했다' 표현, 명확한 시점 전환 등.
+
+[단일 화자인 경우]
+아래 계층 구조로 핵심 내용을 정리하세요:
+■ 대주제 (굵은 항목)
+  ● 세부 항목
+    - 상세 내용
+    ' 인용 또는 예시 문구
+
+[다중 화자인 경우]
+1단계: 각 화자를 [화자 A], [화자 B] 순으로 구분하여 대화 흐름을 간략히 정리
+2단계: 전체 내용을 위 계층 구조(■ ● - ')로 통합 요약
 
 ## 핵심 요약
-(전체 내용을 주제별로 상세하게 정리)
-
-## 할일 / 액션아이템
-| 번호 | 액션아이템 | 담당자 | 기한 |
-|------|-----------|--------|------|
-(언급된 할일, 결정사항, 후속조치를 표로 정리. 담당자/기한 미언급시 -)
-
-담당자나 기한이 명시되지 않은 경우 반드시 -로 표시하세요."""
+(위 규칙에 따라 작성)"""
 
 
 def run():
@@ -87,12 +93,12 @@ def run():
     st.markdown(
         """
         <div class="title-wrap">
-          <h1 class="title-text">녹음 변환 & 내용 정리</h1>
+          <h1 class="title-text">녹음TXT변환 및 요약</h1>
         </div>
         """,
         unsafe_allow_html=True,
     )
-    st.caption("음성 파일을 텍스트로 변환하고 핵심 내용과 할일을 자동으로 정리합니다. (최대 25MB)")
+    st.caption("음성 파일을 텍스트로 변환하고 핵심 내용을 자동으로 정리합니다. (최대 25MB)")
 
     api_key = get_setting("OPENAI_API_KEY")
     if not api_key:
@@ -109,13 +115,11 @@ def run():
         if key not in st.session_state:
             st.session_state[key] = default
 
-    st.markdown('<div class="glass-card">', unsafe_allow_html=True)
     uploaded_file = st.file_uploader(
         "오디오 파일 업로드",
         type=["mp3", "mp4", "m4a", "wav", "webm", "ogg", "flac"],
     )
     convert_clicked = st.button("변환 시작", type="primary", use_container_width=True)
-    st.markdown("</div>", unsafe_allow_html=True)
 
     if convert_clicked:
         if uploaded_file is None:
@@ -145,7 +149,7 @@ def run():
             st.session_state.rec_filename = uploaded_file.name
 
     if st.session_state.rec_transcript:
-        tab1, tab2 = st.tabs(["요약 & 액션아이템", "원문 텍스트"])
+        tab1, tab2 = st.tabs(["핵심 요약", "원문 텍스트"])
         with tab1:
             st.markdown(st.session_state.rec_summary or "요약 결과가 없습니다.")
         with tab2:
@@ -157,7 +161,7 @@ def run():
             )
 
         download_text = (
-            f"# 요약 & 액션아이템\n\n{st.session_state.rec_summary}\n\n"
+            f"# 핵심 요약\n\n{st.session_state.rec_summary}\n\n"
             f"# 원문 텍스트\n\n{st.session_state.rec_transcript}\n"
         )
         download_name = (

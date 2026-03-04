@@ -232,7 +232,7 @@ TIPS = "AI 꿀팁 공유"
 LAW = "AI 법률 검색"
 IDEA = "아이디어 제안소"
 IMG_PROMPT = "AI 이미지 프롬프트 변환기"
-RECORD = "녹음 변환 & 내용 정리"
+RECORD = "녹음TXT변환 및 요약"
 
 if "page" not in st.session_state:
     st.session_state.page = HOME
