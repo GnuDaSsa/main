@@ -1,0 +1,45 @@
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;800&display=swap');
+@import "tailwindcss";
+
+:root {
+  --text-main: #eceff4;
+  --text-sub: #aeb5c1;
+  --panel: rgba(255, 255, 255, 0.04);
+  --panel-border: rgba(255, 255, 255, 0.08);
+  --bg0: #111318;
+  --bg1: #171b23;
+  --line: rgba(255, 255, 255, 0.08);
+}
+
+body {
+  background: var(--bg0);
+  color: var(--text-main);
+  font-family: "Noto Sans KR", "Apple SD Gothic Neo", "Segoe UI", sans-serif;
+  min-height: 100vh;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(22px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.anim-fadeIn { animation: fadeIn 0.55s ease-out both; }
+.anim-slideUp { animation: slideUp 0.60s cubic-bezier(0.2,0.9,0.2,1) both; }
+
+.glass-card {
+  background: linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.03));
+  border: 1px solid var(--line);
+  box-shadow: 0 12px 30px rgba(0,0,0,0.22);
+  backdrop-filter: blur(12px);
+  border-radius: 18px;
+}
+
+.grad-text {
+  background: linear-gradient(90deg, #f4f6f9, #9ba8bb);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
