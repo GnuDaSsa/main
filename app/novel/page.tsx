@@ -462,8 +462,9 @@ export default function NovelPage() {
       ) : (
         /* ── GAME SCREEN ── */
         <div
-          style={{ position: 'relative', width: isMobileGame ? 'min(100vw, calc(100vh * 16 / 9))' : '100%', aspectRatio: '16/9', overflow: 'hidden', background: '#000', borderRadius: isMobileGame ? 0 : 4, cursor: (currentBeat?.kind === 'choice' || currentBeat?.kind === 'photo') ? 'default' : 'pointer' }}
+          style={{ position: 'relative', width: isMobileGame ? 'min(100vw, calc(100vh * 16 / 9))' : '100%', aspectRatio: '16/9', overflow: 'hidden', background: '#000', borderRadius: isMobileGame ? 0 : 4, cursor: (currentBeat?.kind === 'choice' || currentBeat?.kind === 'photo') ? 'default' : 'pointer', userSelect: 'none' }}
           onClick={(currentBeat?.kind !== 'choice' && currentBeat?.kind !== 'photo') ? advance : undefined}
+          onMouseDown={e => e.preventDefault()}
         >
           {/* Background */}
           {state.bg
@@ -543,7 +544,7 @@ export default function NovelPage() {
                   {CHAR_INFO[currentBeat.who]?.name}
                 </div>
               )}
-              <div key={textKey} style={{ fontSize: '1.07rem', color: '#eaf1ff', lineHeight: 1.9, animation: 'vnFadeIn 0.2s ease' }}>
+              <div key={textKey} style={{ fontSize: '1.07rem', color: '#eaf1ff', lineHeight: 1.9, animation: 'vnFadeIn 0.2s ease', userSelect: 'none' }}>
                 {(currentBeat?.kind === 'narration' || currentBeat?.kind === 'dialogue') ? currentBeat.text : null}
               </div>
               <div style={{ position: 'absolute', bottom: 8, right: 14, width: 7, height: 7, borderBottom: '2px solid #6a8fff', borderRight: '2px solid #6a8fff', transform: 'rotate(45deg)', animation: 'blink 1.2s infinite' }} />
