@@ -1,0 +1,80 @@
+goal: "Build a Toss-style citizen-facing web MVP for Seongnam public-facility accident guidance, restoring both road vehicle accidents and sidewalk pedestrian accidents, while sending no-visible-road-damage cases directly to a State Compensation guidance flow instead of asking for a map location."
+task_type: code
+
+constraints:
+  - "Use only sample data; do not submit real personal, medical, CCTV, or insurance data."
+  - "Do not claim legal liability, insurance payment eligibility, or compensation approval is automatically decided."
+  - "CCTV guidance appears only when the citizen checks that there is no dashcam footage."
+  - "CCTV is not implemented as collection or playback."
+  - "Vehicle damage evidence is not requested at the municipal first-guidance stage; it belongs to insurer submission."
+  - "No-visible-road-damage cases must not ask for map location; they go directly to State Compensation guidance."
+  - "The MVP must run as a static browser page."
+
+acceptance_criteria:
+  - "The first viewport asks whether the accident happened on a road or sidewalk."
+  - "Road choices combine pothole/sinkhole into one road-collapse-or-hole option, plus other road damage and no visible road damage."
+  - "Citizen can pin the accident location on a Seongnam map."
+  - "Citizen can search a demo road-name/jibun-like location before pinning."
+  - "Sidewalk choices include broken sidewalk block, detached block, and uneven block."
+  - "No-visible-road-damage choice explains State Compensation, form download, and Seongnam send-to office."
+  - "The app maps the selected point to Sujeong-gu, Jungwon-gu, or Bundang-gu and shows the configured road-management phone number."
+  - "The app provides a downloadable incident statement form and places the selected coordinates in the form."
+  - "The app does not show separate vehicle damage evidence or location-material upload UI."
+  - "CCTV guidance is hidden by default and appears only when the 'no dashcam' checkbox is selected."
+  - "The UI stays citizen-friendly, sequential, and visually large."
+  - "The MVP includes visible boundaries: no CCTV collection, no legal judgment, no compensation approval judgment."
+
+ontology_schema:
+  name: "SeongnamPublicFacilityAccidentGuidance"
+  description: "A citizen-facing guidance flow for road vehicle accidents, sidewalk pedestrian accidents, and no-visible-road-damage State Compensation guidance in Seongnam."
+  fields:
+    - name: "accident_report"
+      field_type: "entity"
+      description: "Citizen-provided accident location, time, type, damage, and contact placeholder."
+      required: true
+    - name: "damage_type"
+      field_type: "enum"
+      description: "Road or sidewalk damage type."
+    - name: "state_compensation_route"
+      field_type: "entity"
+      description: "Direct national/state compensation guidance for no-visible-road-damage cases."
+    - name: "map_point"
+      field_type: "object"
+      description: "Citizen-selected accident coordinates on the Seongnam map."
+    - name: "district_road_team"
+      field_type: "entity"
+      description: "Competent district road-management team and configured phone number."
+    - name: "incident_statement_form"
+      field_type: "document"
+      description: "Downloadable mock incident statement form populated with damage type and coordinates."
+    - name: "dashcam_state"
+      field_type: "boolean"
+      description: "Whether the citizen lacks dashcam footage, controlling CCTV guidance visibility."
+
+evaluation_principles:
+  - name: "workflow_fit"
+    description: "The MVP demonstrates low-calling public facility accident handling rather than isolated forms."
+    weight: 1.0
+  - name: "citizen_friendliness"
+    description: "The interaction feels comfortable for a citizen under stress."
+    weight: 1.0
+  - name: "hackathon_demo_value"
+    description: "The first screen makes the end-to-end scenario understandable within a short demo."
+    weight: 0.8
+  - name: "static_portability"
+    description: "The artifact can be opened locally without a backend."
+    weight: 0.7
+
+exit_conditions:
+  - name: "mvp_complete"
+    description: "All acceptance criteria are represented in the static MVP and reviewed once."
+    evaluation_criteria: "Manual browser smoke test and source inspection pass."
+  - name: "next_generation_ready"
+    description: "Evaluation identifies a concrete next seed for Gen 2."
+    evaluation_criteria: "evaluation.md contains risks and next-loop backlog."
+
+metadata:
+  seed_id: "seongnam_road_sidewalk_state_comp_gen5_20260604"
+  ambiguity_score: 0.07
+  source_idea: "GnuDaSsa/SnKBnW ideas/영조물배상공제_원스톱서비스"
+  workflow: "Ouroboros Interview -> Seed -> Execute -> Evaluate -> Evolve"
