@@ -1,2 +1,5 @@
 .env
 runtime-config.js
+!public/runtime-config.js
+node_modules/
+.next/
